@@ -114,6 +114,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Settings button
+        binding.btnSettings.setOnClickListener {
+            showSyncSettingsDialog()
+        }
+
         // Forget saved device
         binding.btnForget.setOnClickListener {
             savedAddress = null
@@ -127,6 +132,21 @@ class MainActivity : AppCompatActivity() {
         // Show saved device name
         binding.tvDeviceName.text = savedName ?: "No device paired"
         setUiDisconnected()
+    }
+
+    private fun showSyncSettingsDialog() {
+        val options = arrayOf("Both (Recommended)", "Unix Block Only", "Calendar Block Only")
+        val currentMethod = prefs.getInt("sync_method", 0)
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Time Sync Method")
+            .setSingleChoiceItems(options, currentMethod) { dialog, which ->
+                prefs.edit().putInt("sync_method", which).apply()
+                Toast.makeText(this, "Sync method updated", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     // ─── BLE Broadcast Receiver ───────────────────────────────────────────────

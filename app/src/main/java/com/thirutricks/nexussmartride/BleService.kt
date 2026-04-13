@@ -20,6 +20,7 @@ import com.thirutricks.nexussmartride.data.ScooterDatabase
 import com.thirutricks.nexussmartride.data.ScooterRepository
 import kotlinx.coroutines.*
 import java.util.UUID
+import android.widget.Toast
 
 /**
  * Foreground service that manages BLE connection to Ampere Nexus scooter.
@@ -293,15 +294,16 @@ class BleService : LifecycleService() {
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
             isWritingDescriptor = false
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // If this is the last descriptor in our setup queue (or the telemetry one)
-                if (descriptor.characteristic.uuid.toString().lowercase() == NexusParser.CHAR_TELEMETRY.lowercase()) {
+                // Check if this was the last descriptor for setup
+                if (descriptorQueue.isEmpty()) {
+                    Log.i(TAG, "GATT Setup Complete (Queue Empty). Initializing sync…")
                     isConnected = true
                     reconnectAttempts = 0
                     lastPacketTime = System.currentTimeMillis()
                     handler.removeCallbacks(watchdogRunnable)
                     handler.postDelayed(watchdogRunnable, WATCHDOG_TIMEOUT_MS)
                     
-                    // Sync time immediately upon successful secure connection
+                    // Trigger sync only once stable
                     syncScooterTime(gatt)
                     
                     handler.removeCallbacks(periodicSyncRunnable)
@@ -309,6 +311,19 @@ class BleService : LifecycleService() {
                 }
             }
             handler.postDelayed({ writeNextDescriptor(gatt) }, DESCRIPTOR_WRITE_DELAY_MS)
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            if (NexusParser.isSyncCharacteristic(characteristic.uuid.toString())) {
+                val shortUuid = NexusParser.shortUuid(characteristic.uuid.toString())
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.i(TAG, "Sync success on $shortUuid")
+                    showToast("Nexus: $shortUuid Synced OK")
+                } else {
+                    Log.e(TAG, "Sync fail on $shortUuid, status=$status")
+                    showToast("Sync Error $shortUuid: Stat=$status")
+                }
+            }
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
@@ -363,27 +378,36 @@ class BleService : LifecycleService() {
     }
 
     private fun syncScooterTime(gatt: BluetoothGatt) {
-        if (!hasPermissions()) return
-        Log.i(TAG, "Executing time sync routine (Staggered Unix + Calendar)")
+        if (!hasPermissions() || !isConnected) return
+        
+        val prefs = getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
+        val method = prefs.getInt("sync_method", 0) // 0=Both, 1=Unix, 2=Calendar
+        
+        val methodText = when(method) {
+            1 -> "Unix Only"
+            2 -> "Calendar Only"
+            else -> "Full Sync"
+        }
+        
+        Log.i(TAG, "Executing time sync routine ($methodText)")
+        showToast("Syncing time ($methodText)...")
 
-        // Config block (Unix Time)
-        val configPayload = ByteArray(160) { 0xFF.toByte() }
+        // Config block (exact matching official app protocol)
+        val configPayload = byteArrayOf(
+            0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x40, 0xff.toByte(), 0x41, 0x00, 0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x00, 0x43, 0xff.toByte(), 0x02, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x03, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x49, 0xff.toByte(), 0x4f, 0xff.toByte(), 0x44, 0xff.toByte(), 0xff.toByte(), 0x04, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x05, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x4d, 0x03, 0x4e, 0x00, 0x45, 0x4e, 0x6f, 0x20, 0x4d, 0x75, 0x73, 0x69, 0x63, 0x20, 0x53, 0x65, 0x06, 0x6c, 0x65, 0x63, 0x74, 0x65, 0x64, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x00, 0x46, 0x50, 0x69, 0x63, 0x6b, 0x20, 0x07, 0x61, 0x20, 0x53, 0x6f, 0x6e, 0x67, 0x20, 0x59, 0x6f, 0x75, 0x20, 0x4c, 0x6f, 0x76, 0x65, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x08, 0x4a, 0x00, 0x00, 0x4b, 0x00, 0x00, 0x4c, 0x09, 0x39, 0x00, 0x00, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte()
+        )
+        
         val unixTime = (System.currentTimeMillis() / 1000L).toInt()
-        configPayload[0] = 0x01
-        configPayload[1] = 0x02
         configPayload[2] = (unixTime and 0xFF).toByte()
         configPayload[3] = ((unixTime shr 8) and 0xFF).toByte()
         configPayload[4] = ((unixTime shr 16) and 0xFF).toByte()
         configPayload[5] = ((unixTime shr 24) and 0xFF).toByte()
-        configPayload[6] = 0x40.toByte()
-        configPayload[8] = 0x41.toByte()
-        configPayload[13] = 0x42.toByte()
 
         // Calendar block
         val cal = java.util.Calendar.getInstance()
         val year = cal.get(java.util.Calendar.YEAR)
         val calendarPayload = byteArrayOf(
-            0x01,
+            0x01, // Keep 0x01 for Calendar for now as it's a smaller command
             (year and 0xFF).toByte(),
             ((year shr 8) and 0xFF).toByte(),
             (cal.get(java.util.Calendar.MONTH) + 1).toByte(),
@@ -393,39 +417,72 @@ class BleService : LifecycleService() {
             cal.get(java.util.Calendar.SECOND).toByte()
         )
 
-        val candidates = listOf(NexusParser.SERVICE_UUID_SECONDARY, NexusParser.SERVICE_UUID_TERTIARY, NexusParser.SERVICE_UUID_QUATERNARY)
-        for (service in gatt.services) {
+        var targetChar: BluetoothGattCharacteristic? = null
+        
+        // Find the matching characteristic and stop
+        outer@for (service in gatt.services) {
             for (char in service.characteristics) {
-                if (candidates.any { it.equals(char.uuid.toString(), ignoreCase = true) }) {
+                if (NexusParser.isSyncCharacteristic(char.uuid.toString())) {
                     if ((char.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0) {
-                        val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                        handler.postDelayed({
-                            if (isConnected && hasPermissions()) {
-                                Log.d(TAG, "Sync: Unix to ${char.uuid}")
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    gatt.writeCharacteristic(char, configPayload, writeType)
-                                } else {
-                                    @Suppress("DEPRECATION") char.value = configPayload
-                                    @Suppress("DEPRECATION") char.writeType = writeType
-                                    @Suppress("DEPRECATION") gatt.writeCharacteristic(char)
-                                }
-                            }
-                        }, 1000)
-                        handler.postDelayed({
-                            if (isConnected && hasPermissions()) {
-                                Log.d(TAG, "Sync: Calendar to ${char.uuid}")
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    gatt.writeCharacteristic(char, calendarPayload, writeType)
-                                } else {
-                                    @Suppress("DEPRECATION") char.value = calendarPayload
-                                    @Suppress("DEPRECATION") char.writeType = writeType
-                                    @Suppress("DEPRECATION") gatt.writeCharacteristic(char)
-                                }
-                            }
-                        }, 2500)
+                        targetChar = char
+                        break@outer
                     }
                 }
             }
+        }
+        
+        if (targetChar == null) {
+            Log.w(TAG, "Time sync aborted: No matching sync characteristic found")
+            showToast("Sync Error: No Target Found")
+            return
+        }
+
+        val shortUuid = NexusParser.shortUuid(targetChar.uuid.toString())
+        val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        
+        Log.i(TAG, "Instant Sync: Attempting write to $shortUuid")
+        showToast("Syncing via $shortUuid…")
+
+        // Execute Unix Sync (1.5s from function call to let GATT settle)
+        if (method == 0 || method == 1) {
+            handler.postDelayed({
+                if (isConnected && hasPermissions()) {
+                    Log.d(TAG, "Sync: Sending Unix block to $shortUuid: ${NexusParser.toHexString(configPayload.take(10).toByteArray())}…")
+                    val ok = writeCharacteristicCompat(gatt, targetChar, configPayload, writeType)
+                    if (!ok) showToast("$shortUuid: Unix Write Rejected")
+                }
+            }, 1500)
+        }
+
+        // Execute Calendar Sync (3.5s from function call)
+        if (method == 0 || method == 2) {
+            handler.postDelayed({
+                if (isConnected && hasPermissions()) {
+                    Log.d(TAG, "Sync: Sending Calendar block to $shortUuid")
+                    val ok = writeCharacteristicCompat(gatt, targetChar, calendarPayload, writeType)
+                    if (!ok) showToast("$shortUuid: Calendar Write Rejected")
+                }
+            }, 3500)
+        }
+    }
+
+    private fun writeCharacteristicCompat(gatt: BluetoothGatt, char: BluetoothGattCharacteristic, data: ByteArray, writeType: Int): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val result = gatt.writeCharacteristic(char, data, writeType)
+            Log.d(TAG, "Write result (T+): $result")
+            result == BluetoothStatusCodes.SUCCESS
+        } else {
+            @Suppress("DEPRECATION") char.value = data
+            @Suppress("DEPRECATION") char.writeType = writeType
+            @Suppress("DEPRECATION") val result = gatt.writeCharacteristic(char)
+            Log.d(TAG, "Write result: $result")
+            result
+        }
+    }
+
+    private fun showToast(msg: String) {
+        handler.post {
+            Toast.makeText(this@BleService, msg, Toast.LENGTH_SHORT).show()
         }
     }
 

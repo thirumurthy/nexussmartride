@@ -62,12 +62,16 @@ git add version.json
 git commit -m "Release $Version"
 
 # Tagging
-git tag $Version
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Tag $Version created."
+if (git rev-parse "$Version" 2>$null) {
+    Write-Host "Tag $Version already exists, skipping creation."
 } else {
-    Write-Error "Error creating tag. It might already exist."
-    exit 1
+    git tag $Version
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Tag $Version created."
+    } else {
+        Write-Error "Error creating tag."
+        exit 1
+    }
 }
 
 # Push
@@ -78,11 +82,14 @@ git push origin $Version
 
 # 4. Prepare Artifact
 $apkPath = "app\build\outputs\apk\release\app-release.apk"
+if (-not (Test-Path $apkPath)) {
+    $apkPath = "app\build\outputs\apk\release\app-release-unsigned.apk"
+}
 $targetName = "nexus-smartride-$Version.apk"
 
 if (Test-Path $apkPath) {
     Copy-Item -Path $apkPath -Destination ".\$targetName"
-    Write-Host "--> APK copied to .\$targetName"
+    Write-Host "--> APK copied to .\$targetName from $apkPath"
 } else {
     Write-Error "Error: APK not found at $apkPath"
     exit 1

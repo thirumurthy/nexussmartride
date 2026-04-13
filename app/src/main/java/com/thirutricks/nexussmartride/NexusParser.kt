@@ -31,6 +31,8 @@ object NexusParser {
     const val SERVICE_UUID_TERTIARY   = "20032202-1234-1234-1234-220201042403"
     const val SERVICE_UUID_QUATERNARY = "20042202-1234-1234-1234-220201042403"
 
+    val SYNC_CANDIDATES = listOf(SERVICE_UUID_SECONDARY)
+
     // The primary telemetry characteristic (Notify + Read)
     const val CHAR_TELEMETRY = "20012202-1234-1234-1234-220201042403"
 
@@ -200,6 +202,14 @@ object NexusParser {
         lastData = ScooterData()
     }
 
+    fun isSyncCharacteristic(uuid: String): Boolean {
+        return SYNC_CANDIDATES.any { it.equals(uuid, ignoreCase = true) }
+    }
+
     fun toHexString(data: ByteArray): String =
         data.joinToString("-") { "%02X".format(it) }
+
+    fun shortUuid(uuid: String): String {
+        return if (uuid.length > 12) uuid.substring(0, 8) + "..." + uuid.substring(uuid.length - 4) else uuid
+    }
 }
