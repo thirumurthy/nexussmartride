@@ -417,52 +417,55 @@ class BleService : LifecycleService() {
             cal.get(java.util.Calendar.SECOND).toByte()
         )
 
-        var targetChar: BluetoothGattCharacteristic? = null
-        
-        // Find the matching characteristic and stop
-        outer@for (service in gatt.services) {
-            for (char in service.characteristics) {
-                if (NexusParser.isSyncCharacteristic(char.uuid.toString())) {
-                    if ((char.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0) {
+        var serviceDelay = 0L
+        for (candidateUuid in NexusParser.SYNC_CANDIDATES) {
+            var targetChar: BluetoothGattCharacteristic? = null
+            
+            // Look for this specific candidate in the discovered services
+            outer@for (service in gatt.services) {
+                for (char in service.characteristics) {
+                    if (char.uuid.toString().equals(candidateUuid, ignoreCase = true)) {
                         targetChar = char
                         break@outer
                     }
                 }
             }
-        }
-        
-        if (targetChar == null) {
-            Log.w(TAG, "Time sync aborted: No matching sync characteristic found")
-            showToast("Sync Error: No Target Found")
-            return
-        }
+            
+            if (targetChar != null && ((targetChar.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0)) {
+                val shortUuid = NexusParser.shortUuid(targetChar.uuid.toString())
+                val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
 
-        val shortUuid = NexusParser.shortUuid(targetChar.uuid.toString())
-        val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-        
-        Log.i(TAG, "Instant Sync: Attempting write to $shortUuid")
-        showToast("Syncing via $shortUuid…")
+                handler.postDelayed({
+                    if (!isConnected || !hasPermissions()) return@postDelayed
+                    
+                    Log.i(TAG, "Sequential Sync Phase: Attempting write to $shortUuid")
+                    showToast("Syncing via $shortUuid…")
 
-        // Execute Unix Sync (1.5s from function call to let GATT settle)
-        if (method == 0 || method == 1) {
-            handler.postDelayed({
-                if (isConnected && hasPermissions()) {
-                    Log.d(TAG, "Sync: Sending Unix block to $shortUuid: ${NexusParser.toHexString(configPayload.take(10).toByteArray())}…")
-                    val ok = writeCharacteristicCompat(gatt, targetChar, configPayload, writeType)
-                    if (!ok) showToast("$shortUuid: Unix Write Rejected")
-                }
-            }, 1500)
-        }
+                    // Execute Unix Sync (0.5s from phase start)
+                    if (method == 0 || method == 1) {
+                        handler.postDelayed({
+                            if (isConnected && hasPermissions()) {
+                                Log.d(TAG, "Sync: Sending Unix block to $shortUuid: ${NexusParser.toHexString(configPayload.take(10).toByteArray())}…")
+                                val ok = writeCharacteristicCompat(gatt, targetChar, configPayload, writeType)
+                                if (!ok) showToast("$shortUuid: Unix Write Rejected")
+                            }
+                        }, 500)
+                    }
 
-        // Execute Calendar Sync (3.5s from function call)
-        if (method == 0 || method == 2) {
-            handler.postDelayed({
-                if (isConnected && hasPermissions()) {
-                    Log.d(TAG, "Sync: Sending Calendar block to $shortUuid")
-                    val ok = writeCharacteristicCompat(gatt, targetChar, calendarPayload, writeType)
-                    if (!ok) showToast("$shortUuid: Calendar Write Rejected")
-                }
-            }, 3500)
+                    // Execute Calendar Sync (2.5s from phase start)
+                    if (method == 0 || method == 2) {
+                        handler.postDelayed({
+                            if (isConnected && hasPermissions()) {
+                                Log.d(TAG, "Sync: Sending Calendar block to $shortUuid")
+                                val ok = writeCharacteristicCompat(gatt, targetChar, calendarPayload, writeType)
+                                if (!ok) showToast("$shortUuid: Calendar Write Rejected")
+                            }
+                        }, 2500)
+                    }
+                }, serviceDelay)
+                
+                serviceDelay += 5000L // 5 seconds between different services to allow cluster to process
+            }
         }
     }
 
