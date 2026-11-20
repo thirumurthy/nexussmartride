@@ -12,13 +12,23 @@ android {
         applicationId "com.thirutricks.nexussmartride"
         minSdk 26
         targetSdk 34
-        versionCode project.hasProperty('versionCodeOverride') ? project.versionCodeOverride.toInteger() : 1
-        versionName project.hasProperty('versionNameOverride') ? project.versionNameOverride : "1.0"
+        versionCode project.hasProperty('versionCodeOverride') ? project.versionCodeOverride.toInteger() : 16777984
+        versionName project.hasProperty('versionNameOverride') ? project.versionNameOverride : "1.0.3"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('release.jks')
+            storePassword 'nexus123'
+            keyAlias 'nexussmartride'
+            keyPassword 'nexus123'
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }

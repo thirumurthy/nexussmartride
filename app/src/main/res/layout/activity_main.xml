@@ -113,7 +113,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TODAY SO FAR"
+                    android:text="TRIP DISTANCE"
                     android:textColor="@color/text_secondary"
                     android:textSize="9sp"
                     android:letterSpacing="0.1" />
@@ -227,7 +227,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BATTERY VOLTAGE"
+                        android:text="ODOMETER"
                         android:textColor="@color/text_secondary"
                         android:textSize="9sp" />
                     <TextView
@@ -264,6 +264,121 @@
                 android:id="@+id/speedGraph"
                 android:layout_width="match_parent"
                 android:layout_height="100dp" />
+        </LinearLayout>
+
+        <!-- Navigation & Mirroring Options Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_glass_card"
+            android:padding="20dp"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CLUSTER NAVIGATION &amp; MIRRORING"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.2"
+                    android:fontFamily="sans-serif-black" />
+
+                <TextView
+                    android:id="@+id/tvNavModeBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:text="OFF"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp" />
+            </RelativeLayout>
+
+            <!-- Mode Selector Chips / Radio Buttons -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleNavMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnModeOff"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="OFF"
+                    android:textSize="10sp"
+                    app:strokeColor="@color/glass_border"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnModeTbt"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1.4"
+                    android:text="TBT (BLE)"
+                    android:textSize="10sp"
+                    app:strokeColor="@color/glass_border"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnModeMirror"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1.5"
+                    android:text="MIRROR (WI-FI)"
+                    android:textSize="10sp"
+                    app:strokeColor="@color/glass_border"
+                    android:textColor="@color/text_primary" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- Status Container -->
+            <LinearLayout
+                android:id="@+id/layoutNavStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvNavInstruction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select an option above to stream Google Maps"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvNavDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/accent_orange"
+                    android:textSize="11sp"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnNavAction"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GRANT ACCESS"
+                    android:textColor="@color/accent_blue"
+                    android:textSize="11sp"
+                    android:padding="0dp"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Actions -->
@@ -318,10 +433,14 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_marginTop="20dp"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground"
             android:text="Live Syncing..."
             android:textColor="@color/text_secondary"
             android:textSize="10sp"
-            android:alpha="0.5" />
+            android:alpha="0.7" />
 
     </LinearLayout>
 </ScrollView>

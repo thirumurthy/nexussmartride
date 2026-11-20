@@ -7,10 +7,15 @@
 ## 🚀 Features
 
 * 📡 Stable Bluetooth Low Energy (BLE) connection
-* 🔋 Real-time battery and vehicle telemetry
+* 🔋 Real-time battery and vehicle telemetry (SoC, speed, odometer, trip distance, DTE range, voltage, current)
 * 📊 Ride data and performance insights
 * ⏱️ Sync vehicle display time with your device
-* 🧭 TODO - Display basic turn-by-turn navigation cues
+* 📞 **Incoming & Missed Call Sync**: Real-time incoming caller ID and contact name on cluster; missed call count badge sync
+* 🎛️ **Handlebar Call Controls**: Answer and reject incoming phone calls directly using scooter handlebar buttons
+* 🎵 **Media & Song Info Sync**: Live playback metadata (track title, artist name, progress) streamed to vehicle display
+* ⏯️ **Handlebar Media Controls**: Play, pause, skip next, and previous track controlled via scooter handlebar buttons
+* 🧭 **Turn-by-Turn Navigation Cues**: Google Maps turn cues listener over BLE
+* 🖥️ **Screen Mirroring / Hotspot Streaming**: Wi-Fi hotspot screen streaming architecture for scooter display
 * 🔁 Automatic reconnection and session recovery
 
 ---
@@ -104,6 +109,23 @@ This software is provided "as is", without any warranties or guarantees of any k
 By using this application, you acknowledge and agree that you are doing so entirely at your own risk. The developer shall not be held responsible or liable for any direct, indirect, incidental, or consequential damages, including but not limited to vehicle issues, incorrect data display, navigation errors, device malfunction, data loss, personal injury, or any other consequences arising from the use or misuse of this application.
 
 Users are solely responsible for ensuring safe usage of this application. Do not interact with the application while riding or in any situation that may cause distraction or unsafe conditions.
+
+---
+
+## 🏷️ Stable Releases & Tags
+
+* **`v1.0.3`** (or **`1.0.3`**): **Verified Stable Release**
+  * Fully tested and verified working features:
+    * 📞 **Missed Call Counter**: Live counter syncs to the scooter dashboard.
+    * 📲 **Incoming Calls**: Contact name & caller ID alert on the cluster; handlebar button actions to answer (`0x01`) and reject (`0x02`) calls.
+    * 🎵 **Song & Media Info**: Track title, artist name, and playback progress streamed to cluster; handlebar media actions (play/pause/next/prev).
+    * ⚡ **Telemetry & Time Sync**: Accurate SoC %, speed, trip meters, range, and system clock updates.
+  * If any regressions or issues occur during future development, restore or checkout this tag:
+    ```bash
+    git checkout v1.0.3
+    # or
+    git checkout 1.0.3
+    ```
 
 ---
 

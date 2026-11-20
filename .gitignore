@@ -36,6 +36,7 @@ google-services.json
 
 # Antigravity & AI related files
 plans/
+parse_btsnoop.py
 search_hasm.py
 search_strings.py
 tmp_search.py

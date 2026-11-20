@@ -7,11 +7,18 @@ import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.*
 import android.bluetooth.le.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.*
+import android.telecom.TelecomManager
+import android.telephony.TelephonyManager
 import android.util.Log
+import android.view.KeyEvent
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -20,10 +27,10 @@ import com.thirutricks.nexussmartride.data.ScooterDatabase
 import com.thirutricks.nexussmartride.data.ScooterRepository
 import kotlinx.coroutines.*
 import java.util.UUID
-import android.widget.Toast
 
 /**
  * Foreground service that manages BLE connection to Ampere Nexus scooter.
+ * Includes seamless auto-reconnect, global media key routing, and cluster call alerts.
  */
 class BleService : LifecycleService() {
 
@@ -32,6 +39,8 @@ class BleService : LifecycleService() {
 
     companion object {
         private const val TAG = "BleService"
+        var instance: BleService? = null
+            private set
 
         // Notification
         private const val NOTIF_CHANNEL_ID = "nexus_ble"
@@ -64,12 +73,11 @@ class BleService : LifecycleService() {
 
         // Timeouts
         private const val SCAN_PERIOD_MS       = 15_000L
-        private const val WATCHDOG_TIMEOUT_MS  = 8_000L
-        private const val RECONNECT_DELAY_MS   = 2_000L
+        private const val WATCHDOG_TIMEOUT_MS  = 60_000L // 60s avoids false watchdog disconnects during sync
         private const val POST_CONNECT_WAIT_MS = 1_600L
         private const val DESCRIPTOR_WRITE_DELAY_MS = 300L
-        private const val SYNC_INTERVAL_MS         = 1800_000L // 30 minutes
-        private const val DB_LOG_INTERVAL_MS       = 60_000L   // 1 minute for DB snapshots
+        private const val SYNC_INTERVAL_MS         = 20_000L // 20s periodic sync matches official app
+        private const val DB_LOG_INTERVAL_MS       = 60_000L // 1 minute for DB snapshots
     }
 
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -79,8 +87,7 @@ class BleService : LifecycleService() {
     private var targetAddress: String? = null
     private var isConnected = false
     private var isScanning = false
-    private var reconnectAttempts = 0
-    private val MAX_RECONNECT_ATTEMPTS = 500 // Basically forever
+    private var isAutoReconnecting = false
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -103,20 +110,25 @@ class BleService : LifecycleService() {
     }
 
     private val stopScanRunnable = Runnable { stopScan() }
-    private val reconnectRunnable = Runnable {
-        targetAddress?.let { connectToDevice(it, autoConnect = true) }
-    }
 
     private val periodicSyncRunnable = object : Runnable {
         override fun run() {
             if (isConnected) {
                 bluetoothGatt?.let { gatt ->
-                    Log.i(TAG, "Running periodic time sync")
-                    syncScooterTime(gatt)
+                    Log.d(TAG, "Running periodic time sync & handshake refresh (20s interval)")
+                    val missed = NexusParser.getMissedCallCount(this@BleService)
+                    val timePacket = NexusParser.buildTimeSyncPacket(missed)
+                    writePacketToCluster(timePacket)
+                    sendRegistrationHandshake(gatt)
                 }
             }
             handler.postDelayed(this, SYNC_INTERVAL_MS)
         }
+    }
+
+    private val clearCallRunnable = Runnable {
+        Log.i(TAG, "Call Idle timeout elapsed: Clearing cluster call display back to default")
+        sendCallDetailsToCluster(callerName = null, callStatus = 0xFF, missedCount = NexusParser.getMissedCallCount(this@BleService))
     }
 
     private val dbLogRunnable = object : Runnable {
@@ -133,22 +145,100 @@ class BleService : LifecycleService() {
         }
     }
 
+    // ─── Broadcast Receivers ─────────────────────────────────────────────────
+
+    private val phoneStateReceiver = object : BroadcastReceiver() {
+        private var lastState = TelephonyManager.EXTRA_STATE_IDLE
+        private var lastIncomingNumber: String? = null
+
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
+            val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
+
+            when (state) {
+                TelephonyManager.EXTRA_STATE_RINGING -> {
+                    handler.removeCallbacks(clearCallRunnable)
+                    val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                    lastIncomingNumber = number
+                    val callerName = NexusParser.getCallerName(context, number)
+                    val missed = NexusParser.getMissedCallCount(context)
+                    Log.i(TAG, "Incoming Call: $callerName ($number), missed: $missed")
+                    sendCallDetailsToCluster(callerName, callStatus = 0, missedCount = missed)
+                }
+                TelephonyManager.EXTRA_STATE_OFFHOOK -> {
+                    handler.removeCallbacks(clearCallRunnable)
+                    if (lastState == TelephonyManager.EXTRA_STATE_RINGING) {
+                        val callerName = NexusParser.getCallerName(context, lastIncomingNumber)
+                        val missed = NexusParser.getMissedCallCount(context)
+                        Log.i(TAG, "Call Answered: $callerName")
+                        sendCallDetailsToCluster(callerName, callStatus = 1, missedCount = missed)
+                    }
+                }
+                TelephonyManager.EXTRA_STATE_IDLE -> {
+                    val wasRinging = (lastState == TelephonyManager.EXTRA_STATE_RINGING)
+                    val wasOffhook = (lastState == TelephonyManager.EXTRA_STATE_OFFHOOK)
+                    if (wasRinging || wasOffhook) {
+                        val missed = NexusParser.getMissedCallCount(context)
+                        val status = if (wasRinging && missed > 0) 3 else 2 // 3=Missed, 2=Ended
+                        val callerName = NexusParser.getCallerName(context, lastIncomingNumber)
+                        Log.i(TAG, "Call Ended: status=$status, missed=$missed, caller=$callerName")
+                        sendCallDetailsToCluster(callerName, callStatus = status, missedCount = missed)
+                        // After 2.5 seconds, clear the call alert from the scooter display
+                        handler.removeCallbacks(clearCallRunnable)
+                        handler.postDelayed(clearCallRunnable, 2500L)
+                    } else {
+                        // Spurious or initial idle broadcast - ensure no call alert
+                        handler.removeCallbacks(clearCallRunnable)
+                        val missed = NexusParser.getMissedCallCount(context)
+                        sendCallDetailsToCluster(callerName = null, callStatus = 0xFF, missedCount = missed)
+                    }
+                }
+            }
+            lastState = state
+        }
+    }
+
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                if (state == BluetoothAdapter.STATE_ON) {
+                    Log.i(TAG, "Bluetooth turned ON: initiating auto-connection")
+                    targetAddress?.let { startAutoReconnectScan(it) } ?: startScan()
+                } else if (state == BluetoothAdapter.STATE_TURNING_OFF || state == BluetoothAdapter.STATE_OFF) {
+                    disconnect()
+                }
+            }
+        }
+    }
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
+
     override fun onCreate() {
         super.onCreate()
-        
+        instance = this
+
         val db = ScooterDatabase.getDatabase(this)
         repository = ScooterRepository.getInstance(db.scooterDao())
-        
+
         createNotificationChannel()
         val manager = getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = manager?.adapter
-        
+
         // Load saved address for persistent reconnection
         val prefs = getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
         targetAddress = prefs.getString("device_address", null)
-        
+
         handler.post(dbLogRunnable)
-        
+
+        // Register telephony and bluetooth state receivers
+        try {
+            registerReceiver(phoneStateReceiver, IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED))
+            registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering receivers: ${e.message}")
+        }
+
         Log.i(TAG, "BleService created, savedAddress=$targetAddress")
     }
 
@@ -156,18 +246,26 @@ class BleService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         startForeground(NOTIF_ID, buildNotification("Searching for scooter…"))
         when (intent?.action) {
-            CMD_SCAN       -> startScan()
-            CMD_CONNECT    -> {
+            CMD_SCAN -> startScan()
+            CMD_CONNECT -> {
                 val addr = intent.getStringExtra(EXTRA_ADDRESS) ?: return START_STICKY
                 targetAddress = addr
-                reconnectAttempts = 0
-                // Save to prefs so it persists service restarts
-                getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE).edit().putString("device_address", addr).apply()
+                getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("device_address", addr)
+                    .apply()
                 connectToDevice(addr, autoConnect = false)
             }
             CMD_DISCONNECT -> {
                 targetAddress = null
+                stopAutoReconnectScan()
                 disconnect()
+            }
+            else -> {
+                // If service started by system/boot without specific intent, auto-reconnect to saved scooter
+                if (!isConnected && targetAddress != null) {
+                    startAutoReconnectScan(targetAddress!!)
+                }
             }
         }
         return START_STICKY
@@ -178,14 +276,31 @@ class BleService : LifecycleService() {
         return null
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.i(TAG, "onTaskRemoved: App swiped away from recent apps; maintaining BleService in foreground")
+        // Keep foreground service notification active
+        updateNotification(if (isConnected) "Connected to Ampere Nexus" else "Searching for scooter…")
+        // If not connected and we have a saved target address, ensure targeted auto-reconnect scan is active
+        if (!isConnected && targetAddress != null) {
+            startAutoReconnectScan(targetAddress!!)
+        }
+    }
+
     override fun onDestroy() {
+        instance = null
         super.onDestroy()
         serviceScope.cancel()
         handler.removeCallbacksAndMessages(null)
+        try { unregisterReceiver(phoneStateReceiver) } catch (e: Exception) {}
+        try { unregisterReceiver(bluetoothStateReceiver) } catch (e: Exception) {}
         stopScan()
+        stopAutoReconnectScan()
         disconnect()
         Log.i(TAG, "BleService destroyed")
     }
+
+    // ─── BLE Scanning & Auto-Reconnection ────────────────────────────────────
 
     private fun startScan() {
         if (!hasPermissions()) { sendBroadcast(ACTION_SCAN_FAILED); return }
@@ -193,7 +308,8 @@ class BleService : LifecycleService() {
         isScanning = true
         isConnected = false
         updateNotification("Scanning for Nexus scooter…")
-        Log.i(TAG, "Starting BLE scan")
+        Log.i(TAG, "Starting manual BLE scan")
+
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
@@ -214,11 +330,10 @@ class BleService : LifecycleService() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val name = result.device.name ?: return
             if (!name.startsWith(NexusParser.DEVICE_NAME_PREFIX, ignoreCase = true)) return
-            
+
             Log.i(TAG, "Found Nexus device: $name (${result.device.address})")
             stopScan()
 
-            // Update target address and persist it
             val address = result.device.address
             targetAddress = address
             getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
@@ -232,9 +347,64 @@ class BleService : LifecycleService() {
                 putExtra(EXTRA_DEVICE_NAME, name)
             }
             LocalBroadcastManager.getInstance(this@BleService).sendBroadcast(intent)
-            
-            // Automatically connect to the found NEX_ device
+
             connectToDevice(address, autoConnect = false)
+        }
+    }
+
+    /**
+     * Rock-solid seamless auto-reconnection:
+     * Uses targeted BLE background scan matching the saved MAC address.
+     * The exact moment the scooter turns ON and advertises, onScanResult fires
+     * and connects directly within < 500ms without laggy exponential backoff loops.
+     */
+    private fun startAutoReconnectScan(address: String) {
+        if (!hasPermissions() || isConnected || isAutoReconnecting) return
+        val scanner = bluetoothAdapter?.bluetoothLeScanner ?: return
+        isAutoReconnecting = true
+        Log.i(TAG, "Starting targeted auto-reconnect scan for: $address")
+        updateNotification("Waiting for scooter ($address)…")
+
+        val filters = listOf(
+            ScanFilter.Builder().setDeviceAddress(address).build()
+        )
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0)
+            .build()
+
+        try {
+            scanner.startScan(filters, settings, autoReconnectCallback)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting auto-reconnect scan: ${e.message}")
+            isAutoReconnecting = false
+        }
+    }
+
+    private val autoReconnectCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val addr = result.device.address
+            Log.i(TAG, "Target scooter detected in scan: $addr. Connecting immediately!")
+            stopAutoReconnectScan()
+            connectToDevice(addr, autoConnect = false)
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            Log.w(TAG, "Auto-reconnect scan failed: $errorCode")
+            isAutoReconnecting = false
+            handler.postDelayed({ targetAddress?.let { startAutoReconnectScan(it) } }, 2000)
+        }
+    }
+
+    private fun stopAutoReconnectScan() {
+        if (!isAutoReconnecting) return
+        isAutoReconnecting = false
+        if (hasPermissions()) {
+            try {
+                bluetoothAdapter?.bluetoothLeScanner?.stopScan(autoReconnectCallback)
+            } catch (e: Exception) {
+                Log.w(TAG, "Error stopping auto-reconnect scan: ${e.message}")
+            }
         }
     }
 
@@ -242,34 +412,54 @@ class BleService : LifecycleService() {
         if (!hasPermissions()) return
         Log.i(TAG, "Connecting to $address (autoConnect=$autoConnect)")
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return
+
+        // Clean up previous GATT instance to prevent Error 133 / handle leaks
         bluetoothGatt?.close()
+        bluetoothGatt = null
+
         bluetoothGatt = device.connectGatt(this, autoConnect, gattCallback, BluetoothDevice.TRANSPORT_LE)
     }
 
     private fun disconnect() {
         isConnected = false
-        if (hasPermissions()) bluetoothGatt?.disconnect()
-        handler.postDelayed({ bluetoothGatt?.close(); bluetoothGatt = null }, 500)
+        if (hasPermissions()) {
+            try {
+                bluetoothGatt?.disconnect()
+            } catch (e: Exception) {}
+        }
+        handler.postDelayed({
+            try {
+                bluetoothGatt?.close()
+            } catch (e: Exception) {}
+            bluetoothGatt = null
+        }, 500)
     }
 
     private fun reconnect() {
-        if (targetAddress == null || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return
-        reconnectAttempts++
-        val delay = (RECONNECT_DELAY_MS * reconnectAttempts).coerceAtMost(60_000L)
-        Log.i(TAG, "Scheduling reconnect #$reconnectAttempts in ${delay}ms")
+        val addr = targetAddress ?: return
+        Log.i(TAG, "Scheduling immediate background scan auto-reconnection for $addr")
         disconnect()
-        handler.removeCallbacks(reconnectRunnable)
-        handler.postDelayed(reconnectRunnable, delay)
+        handler.postDelayed({
+            startAutoReconnectScan(addr)
+        }, 800)
     }
+
+    // ─── GATT Callback ────────────────────────────────────────────────────────
 
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             Log.i(TAG, "onConnectionStateChange: status=$status, newState=$newState")
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                stopAutoReconnectScan()
+                stopScan()
                 handler.postDelayed({ if (hasPermissions()) gatt.discoverServices() }, POST_CONNECT_WAIT_MS)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 isConnected = false
-                if (targetAddress != null) reconnect()
+                sendBroadcast(ACTION_DISCONNECTED)
+                updateNotification("Disconnected from scooter")
+                if (targetAddress != null) {
+                    reconnect()
+                }
             }
         }
 
@@ -277,35 +467,50 @@ class BleService : LifecycleService() {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Services discovered (${gatt.services.size})")
                 gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
-                gatt.requestMtu(512)
+                val mtuReq = gatt.requestMtu(512)
+                if (!mtuReq) {
+                    Log.w(TAG, "requestMtu returned false, proceeding to enableNotifications directly")
+                    enableNotifications(gatt)
+                }
             }
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            Log.i(TAG, "onMtuChanged: mtu=$mtu, status=$status")
+            // Immediately start notification setup regardless of PHY update
+            enableNotifications(gatt)
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                gatt.setPreferredPhy(BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_OPTION_NO_PREFERRED)
+                try {
+                    gatt.setPreferredPhy(BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_LE_2M_MASK, BluetoothDevice.PHY_OPTION_NO_PREFERRED)
+                } catch (e: Exception) {
+                    Log.w(TAG, "setPreferredPhy exception: ${e.message}")
+                }
             }
         }
 
         override fun onPhyUpdate(gatt: BluetoothGatt, txPhy: Int, rxPhy: Int, status: Int) {
-            enableNotifications(gatt)
+            Log.i(TAG, "onPhyUpdate: txPhy=$txPhy, rxPhy=$rxPhy, status=$status")
         }
 
         override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
             isWritingDescriptor = false
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // Check if this was the last descriptor for setup
                 if (descriptorQueue.isEmpty()) {
-                    Log.i(TAG, "GATT Setup Complete (Queue Empty). Initializing sync…")
+                    Log.i(TAG, "GATT Setup Complete. Ready for communication.")
                     isConnected = true
-                    reconnectAttempts = 0
                     lastPacketTime = System.currentTimeMillis()
+                    updateNotification("Connected to Ampere Nexus")
+                    sendBroadcast(ACTION_CONNECTED)
+
                     handler.removeCallbacks(watchdogRunnable)
                     handler.postDelayed(watchdogRunnable, WATCHDOG_TIMEOUT_MS)
-                    
-                    // Trigger sync only once stable
+
+                    // Execute time sync across multiple candidate characteristics with live toasts
                     syncScooterTime(gatt)
-                    
+
+                    // Immediately query and sync active song if media player is running
+                    MapNotificationListenerService.triggerActiveMediaSync()
+
                     handler.removeCallbacks(periodicSyncRunnable)
                     handler.postDelayed(periodicSyncRunnable, SYNC_INTERVAL_MS)
                 }
@@ -314,25 +519,44 @@ class BleService : LifecycleService() {
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-            if (NexusParser.isSyncCharacteristic(characteristic.uuid.toString())) {
-                val shortUuid = NexusParser.shortUuid(characteristic.uuid.toString())
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    Log.i(TAG, "Sync success on $shortUuid")
+            handler.removeCallbacks(charWriteTimeoutRunnable)
+            val shortUuid = NexusParser.shortUuid(characteristic.uuid.toString())
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Cluster write success on $shortUuid")
+                if (NexusParser.isSyncCharacteristic(characteristic.uuid.toString())) {
                     showToast("Nexus: $shortUuid Synced OK")
-                } else {
-                    Log.e(TAG, "Sync fail on $shortUuid, status=$status")
+                }
+            } else {
+                Log.w(TAG, "Cluster write failed on $shortUuid, status=$status")
+                if (NexusParser.isSyncCharacteristic(characteristic.uuid.toString())) {
                     showToast("Sync Error $shortUuid: Stat=$status")
                 }
             }
+            synchronized(charWriteQueue) {
+                if (charWriteQueue.isNotEmpty()) {
+                    charWriteQueue.removeFirst()
+                }
+            }
+            isWritingCharacteristic = false
+            handler.postDelayed({ writeNextCharacteristic() }, 60L)
         }
 
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             val data = characteristic.value ?: return
             lastPacketTime = System.currentTimeMillis()
             val parsed = NexusParser.parse(data) ?: return
-            
-            // Push to repository for cross-app access
+
             repository.updateCurrentData(parsed)
+
+            // Handle Global Media Action from Scooty Handlebar
+            if (parsed.songAction != -1) {
+                handleGlobalMediaAction(parsed.songAction)
+            }
+
+            // Handle Call Answering / Rejecting from Scooty Handlebar
+            if (parsed.callAction != -1) {
+                handleScooterCallAction(parsed.callAction)
+            }
 
             val intent = Intent(ACTION_DATA).apply {
                 putExtra(EXTRA_SPEED,   parsed.speedKmh)
@@ -347,6 +571,383 @@ class BleService : LifecycleService() {
             LocalBroadcastManager.getInstance(this@BleService).sendBroadcast(intent)
         }
     }
+
+    // ─── Global Media & Call Actions ─────────────────────────────────────────
+
+    /**
+     * Executes media action globally using Android system AudioManager and MediaController.
+     * Controls Spotify, YouTube, YouTube Music, Apple Music, Audible, or any active media player.
+     *
+     * 0x01 = Play
+     * 0x02 = Pause
+     * 0x03 = Next Track
+     * 0x04 = Previous Track
+     */
+    private fun handleGlobalMediaAction(action: Int) {
+        val controller = MapNotificationListenerService.activeMediaController
+        if (controller != null) {
+            try {
+                when (action) {
+                    0x01 -> controller.transportControls.play()
+                    0x02 -> controller.transportControls.pause()
+                    0x03 -> controller.transportControls.skipToNext()
+                    0x04 -> controller.transportControls.skipToPrevious()
+                }
+                val label = when (action) {
+                    0x01 -> "Play"
+                    0x02 -> "Pause"
+                    0x03 -> "Next Track"
+                    0x04 -> "Previous Track"
+                    else -> ""
+                }
+                showToast("Scooter: $label (${controller.packageName})")
+                return
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaController action failed: ${e.message}, falling back to AudioManager")
+            }
+        }
+
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        val keyCode = when (action) {
+            0x01 -> KeyEvent.KEYCODE_MEDIA_PLAY
+            0x02 -> KeyEvent.KEYCODE_MEDIA_PAUSE
+            0x03 -> KeyEvent.KEYCODE_MEDIA_NEXT
+            0x04 -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            else -> return
+        }
+
+        Log.i(TAG, "Executing Global Media Action via KeyEvent: $action (KeyCode=$keyCode)")
+        val eventTime = SystemClock.uptimeMillis()
+        audioManager.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
+        audioManager.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
+
+        val label = when (action) {
+            0x01 -> "Play"
+            0x02 -> "Pause"
+            0x03 -> "Next Track"
+            0x04 -> "Previous Track"
+            else -> ""
+        }
+        showToast("Scooter: $label")
+    }
+
+    /**
+     * Executes call actions from the scooter cluster buttons.
+     * 0x01 = Answer Call
+     * 0x02 = Reject Call
+     */
+    private fun handleScooterCallAction(action: Int) {
+        Log.i(TAG, "Executing Scooter Call Action: $action")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val telecomManager = getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
+                when (action) {
+                    0x01 -> {
+                        Log.i(TAG, "Answering call via scooter button")
+                        telecomManager?.acceptRingingCall()
+                        showToast("Call Answered")
+                    }
+                    0x02 -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            Log.i(TAG, "Rejecting call via scooter button")
+                            telecomManager?.endCall()
+                            showToast("Call Rejected")
+                        }
+                    }
+                }
+            } else {
+                Log.w(TAG, "ANSWER_PHONE_CALLS permission not granted")
+            }
+        }
+    }
+
+    // ─── Thread-Safe Characteristic Write Queue with Watchdog ─────────────────
+    private val charWriteQueue = java.util.ArrayDeque<Pair<BluetoothGattCharacteristic, ByteArray>>()
+    private var isWritingCharacteristic = false
+
+    private val charWriteTimeoutRunnable = Runnable {
+        Log.w(TAG, "Characteristic write timed out after 1500ms! Auto-advancing write queue...")
+        synchronized(charWriteQueue) {
+            if (charWriteQueue.isNotEmpty()) {
+                charWriteQueue.removeFirst()
+            }
+        }
+        isWritingCharacteristic = false
+        handler.postDelayed({ writeNextCharacteristic() }, 100L)
+    }
+
+    private fun queueCharacteristicWrite(char: BluetoothGattCharacteristic, data: ByteArray) {
+        synchronized(charWriteQueue) {
+            charWriteQueue.add(Pair(char, data))
+            if (!isWritingCharacteristic) {
+                writeNextCharacteristic()
+            }
+        }
+    }
+
+    private fun writeNextCharacteristic() {
+        handler.removeCallbacks(charWriteTimeoutRunnable)
+        val gatt = bluetoothGatt ?: run {
+            isWritingCharacteristic = false
+            return
+        }
+        val next = synchronized(charWriteQueue) {
+            if (charWriteQueue.isEmpty()) {
+                isWritingCharacteristic = false
+                return
+            }
+            isWritingCharacteristic = true
+            charWriteQueue.peek()
+        } ?: return
+
+        val char = next.first
+        val data = next.second
+        val writeType = if ((char.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0) {
+            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        } else {
+            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        }
+
+        // Arm 1500ms watchdog so dropped GATT callbacks never freeze future packet writes
+        handler.postDelayed(charWriteTimeoutRunnable, 1500L)
+
+        val success = writeCharacteristicCompat(gatt, char, data, writeType)
+        if (!success) {
+            Log.w(TAG, "writeCharacteristic returned false for ${NexusParser.shortUuid(char.uuid.toString())}")
+            handler.removeCallbacks(charWriteTimeoutRunnable)
+            synchronized(charWriteQueue) {
+                if (charWriteQueue.isNotEmpty()) charWriteQueue.removeFirst()
+            }
+            isWritingCharacteristic = false
+            handler.postDelayed({ writeNextCharacteristic() }, 200)
+        } else if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
+            handler.removeCallbacks(charWriteTimeoutRunnable)
+            synchronized(charWriteQueue) {
+                if (charWriteQueue.isNotEmpty()) charWriteQueue.removeFirst()
+            }
+            isWritingCharacteristic = false
+            handler.postDelayed({ writeNextCharacteristic() }, 50)
+        }
+    }
+
+    /**
+     * Sends caller name, call status, and missed call count to the scooter dashboard.
+     */
+    fun sendCallDetailsToCluster(callerName: String?, callStatus: Int, missedCount: Int) {
+        val payload = NexusParser.buildCallAlertPacket(callerName, callStatus, missedCount)
+        writePacketToCluster(payload)
+    }
+
+    /**
+     * Sends currently playing song metadata to the scooter dashboard.
+     */
+    fun sendMediaDetailsToCluster(
+        title: String?,
+        artist: String?,
+        isPlaying: Boolean,
+        progressSec: Int = 0,
+        durationSec: Int = 0
+    ) {
+        if (!title.isNullOrBlank()) {
+            showToast("Song: $title")
+        }
+        val payload = NexusParser.buildMediaDisplayPacket(title, artist, isPlaying, progressSec, durationSec)
+        writePacketToCluster(payload)
+    }
+
+    /**
+     * Sends Google Maps turn-by-turn navigation cues to the scooter cluster display (Option A).
+     */
+    fun sendNavigationToCluster(
+        maneuverDirection: Int,
+        turnDistanceMeters: Int,
+        totalDistanceMeters: Int,
+        roadName: String?,
+        isGpsFixed: Boolean = true
+    ) {
+        val payload = NexusParser.buildNavigationPacket(
+            maneuverDirection,
+            turnDistanceMeters,
+            totalDistanceMeters,
+            roadName,
+            isGpsFixed
+        )
+        writePacketToCluster(payload)
+    }
+
+    /**
+     * Sends raw packet directly to the scooter cluster (used for Option B Wi-Fi provisioning).
+     */
+    fun writePacketToClusterDirect(payload: ByteArray) {
+        writePacketToCluster(payload)
+    }
+
+    private fun writePacketToCluster(payload: ByteArray) {
+        val gatt = bluetoothGatt ?: return
+        if (!isConnected || !hasPermissions()) return
+
+        // 160-byte cluster frame & 100-byte Wi-Fi provisioning packet target 20032202 (TERTIARY)
+        var targetChar = findCharacteristic(gatt, NexusParser.SERVICE_UUID_TERTIARY)
+        if (targetChar == null) {
+            val fallbacks = listOf(
+                NexusParser.SERVICE_UUID_SECONDARY,
+                NexusParser.SERVICE_UUID_QUATERNARY,
+                NexusParser.CHAR_TELEMETRY
+            )
+            for (uuid in fallbacks) {
+                targetChar = findCharacteristic(gatt, uuid)
+                if (targetChar != null) break
+            }
+        }
+        targetChar?.let { queueCharacteristicWrite(it, payload) }
+    }
+
+    private fun writeHandshakeToCluster(payload: ByteArray) {
+        val gatt = bluetoothGatt ?: return
+        if (!isConnected || !hasPermissions()) return
+
+        // Registration handshake packets (010C, 0110, 0111, 0112) target 20022202 (SECONDARY)
+        val targetChar = findCharacteristic(gatt, NexusParser.SERVICE_UUID_SECONDARY)
+            ?: findCharacteristic(gatt, NexusParser.SERVICE_UUID_TERTIARY)
+
+        targetChar?.let { queueCharacteristicWrite(it, payload) }
+    }
+
+    private fun findCharacteristic(gatt: BluetoothGatt, targetUuid: String): BluetoothGattCharacteristic? {
+        for (service in gatt.services) {
+            for (char in service.characteristics) {
+                if (char.uuid.toString().equals(targetUuid, ignoreCase = true) &&
+                    ((char.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0)) {
+                    return char
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Manually triggers time sync routine across all candidate characteristics with toast messages.
+     */
+    fun triggerManualSync() {
+        val gatt = bluetoothGatt ?: run {
+            showToast("Cannot sync: Not connected to scooter")
+            return
+        }
+        if (!isConnected) {
+            showToast("Cannot sync: Scooter not connected")
+            return
+        }
+        syncScooterTime(gatt)
+        MapNotificationListenerService.triggerActiveMediaSync()
+    }
+
+    // ─── Time Sync Routine Across Candidate Characteristics ──────────────────
+
+    private fun syncScooterTime(gatt: BluetoothGatt) {
+        if (!hasPermissions() || !isConnected) return
+
+        val prefs = getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
+        val method = prefs.getInt("sync_method", 0) // 0=Both, 1=Unix, 2=Calendar
+        val methodText = when (method) {
+            1 -> "Unix Only"
+            2 -> "Calendar Only"
+            else -> "Full Sync"
+        }
+
+        Log.i(TAG, "Executing time sync routine across candidate addresses ($methodText)")
+        showToast("Syncing time ($methodText)...")
+
+        // 160-byte Unix packet (exact matching official app protocol)
+        val missed = NexusParser.getMissedCallCount(this)
+        val configPayload = NexusParser.buildTimeSyncPacket(missed)
+
+        // 8-byte Calendar block (used only if user explicitly selects Calendar Only)
+        val cal = java.util.Calendar.getInstance()
+        val year = cal.get(java.util.Calendar.YEAR)
+        val calendarPayload = byteArrayOf(
+            0x01,
+            (year and 0xFF).toByte(),
+            ((year shr 8) and 0xFF).toByte(),
+            (cal.get(java.util.Calendar.MONTH) + 1).toByte(),
+            cal.get(java.util.Calendar.DAY_OF_MONTH).toByte(),
+            cal.get(java.util.Calendar.HOUR_OF_DAY).toByte(),
+            cal.get(java.util.Calendar.MINUTE).toByte(),
+            cal.get(java.util.Calendar.SECOND).toByte()
+        )
+
+        val model = prefs.getString("scooter_model", "NEXUS ST") ?: "NEXUS ST"
+        val vin = prefs.getString("scooter_vin", "MCPN23300CLH185") ?: "MCPN23300CLH185"
+        val owner = prefs.getString("scooter_owner", "Thirumurthy") ?: "Thirumurthy"
+
+        val p1 = NexusParser.buildHandshake010C(model)
+        val p2 = NexusParser.buildHandshake0110(vin)
+        val p3 = NexusParser.buildHandshake0111()
+        val p4 = NexusParser.buildHandshake0112(owner)
+
+        var candidateDelay = 0L
+        for (candidateUuid in NexusParser.SYNC_CANDIDATES) {
+            val targetChar = findCharacteristic(gatt, candidateUuid) ?: continue
+            val shortUuid = NexusParser.shortUuid(targetChar.uuid.toString())
+
+            handler.postDelayed({
+                if (!isConnected || !hasPermissions()) return@postDelayed
+
+                Log.i(TAG, "Sequential Candidate Sync: Attempting write to $shortUuid")
+                showToast("Syncing via $shortUuid…")
+
+                when {
+                    candidateUuid.equals(NexusParser.SERVICE_UUID_TERTIARY, ignoreCase = true) -> {
+                        // Characteristic 20032202: 160-byte cluster frame
+                        if (method == 2) {
+                            queueCharacteristicWrite(targetChar, calendarPayload)
+                        } else {
+                            queueCharacteristicWrite(targetChar, configPayload)
+                        }
+                    }
+                    candidateUuid.equals(NexusParser.SERVICE_UUID_SECONDARY, ignoreCase = true) -> {
+                        // Characteristic 20022202: 4 registration handshake packets
+                        queueCharacteristicWrite(targetChar, p1)
+                        queueCharacteristicWrite(targetChar, p2)
+                        queueCharacteristicWrite(targetChar, p3)
+                        queueCharacteristicWrite(targetChar, p4)
+                    }
+                    else -> {
+                        // Candidate probe write
+                        if (method == 2) {
+                            queueCharacteristicWrite(targetChar, calendarPayload)
+                        } else {
+                            queueCharacteristicWrite(targetChar, configPayload)
+                        }
+                    }
+                }
+            }, candidateDelay)
+
+            candidateDelay += 2000L
+        }
+    }
+
+    private fun sendRegistrationHandshake(gatt: BluetoothGatt) {
+        val targetChar = findCharacteristic(gatt, NexusParser.SERVICE_UUID_SECONDARY)
+            ?: findCharacteristic(gatt, NexusParser.SERVICE_UUID_TERTIARY) ?: return
+
+        val prefs = getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
+        val model = prefs.getString("scooter_model", "NEXUS ST") ?: "NEXUS ST"
+        val vin = prefs.getString("scooter_vin", "MCPN23300CLH185") ?: "MCPN23300CLH185"
+        val owner = prefs.getString("scooter_owner", "Thirumurthy") ?: "Thirumurthy"
+
+        val p1 = NexusParser.buildHandshake010C(model)
+        val p2 = NexusParser.buildHandshake0110(vin)
+        val p3 = NexusParser.buildHandshake0111()
+        val p4 = NexusParser.buildHandshake0112(owner)
+
+        Log.d(TAG, "Queueing 4 registration handshake packets to ${NexusParser.shortUuid(targetChar.uuid.toString())}")
+        queueCharacteristicWrite(targetChar, p1)
+        queueCharacteristicWrite(targetChar, p2)
+        queueCharacteristicWrite(targetChar, p3)
+        queueCharacteristicWrite(targetChar, p4)
+    }
+
+    // ─── BLE Descriptor & Notification Setup ─────────────────────────────────
 
     private fun enableNotifications(gatt: BluetoothGatt) {
         if (!hasPermissions()) return
@@ -377,115 +978,29 @@ class BleService : LifecycleService() {
         }
     }
 
-    private fun syncScooterTime(gatt: BluetoothGatt) {
-        if (!hasPermissions() || !isConnected) return
-        
-        val prefs = getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
-        val method = prefs.getInt("sync_method", 0) // 0=Both, 1=Unix, 2=Calendar
-        
-        val methodText = when(method) {
-            1 -> "Unix Only"
-            2 -> "Calendar Only"
-            else -> "Full Sync"
-        }
-        
-        Log.i(TAG, "Executing time sync routine ($methodText)")
-        showToast("Syncing time ($methodText)...")
-
-        // Config block (exact matching official app protocol)
-        val configPayload = byteArrayOf(
-            0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x40, 0xff.toByte(), 0x41, 0x00, 0x00, 0x00, 0x00, 0x42, 0x00, 0x00, 0x00, 0x00, 0x43, 0xff.toByte(), 0x02, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x03, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x49, 0xff.toByte(), 0x4f, 0xff.toByte(), 0x44, 0xff.toByte(), 0xff.toByte(), 0x04, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x05, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x4d, 0x03, 0x4e, 0x00, 0x45, 0x4e, 0x6f, 0x20, 0x4d, 0x75, 0x73, 0x69, 0x63, 0x20, 0x53, 0x65, 0x06, 0x6c, 0x65, 0x63, 0x74, 0x65, 0x64, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x00, 0x46, 0x50, 0x69, 0x63, 0x6b, 0x20, 0x07, 0x61, 0x20, 0x53, 0x6f, 0x6e, 0x67, 0x20, 0x59, 0x6f, 0x75, 0x20, 0x4c, 0x6f, 0x76, 0x65, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0x08, 0x4a, 0x00, 0x00, 0x4b, 0x00, 0x00, 0x4c, 0x09, 0x39, 0x00, 0x00, 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte(), 0xff.toByte()
-        )
-        
-        val unixTime = (System.currentTimeMillis() / 1000L).toInt()
-        configPayload[2] = (unixTime and 0xFF).toByte()
-        configPayload[3] = ((unixTime shr 8) and 0xFF).toByte()
-        configPayload[4] = ((unixTime shr 16) and 0xFF).toByte()
-        configPayload[5] = ((unixTime shr 24) and 0xFF).toByte()
-
-        // Calendar block
-        val cal = java.util.Calendar.getInstance()
-        val year = cal.get(java.util.Calendar.YEAR)
-        val calendarPayload = byteArrayOf(
-            0x01, // Keep 0x01 for Calendar for now as it's a smaller command
-            (year and 0xFF).toByte(),
-            ((year shr 8) and 0xFF).toByte(),
-            (cal.get(java.util.Calendar.MONTH) + 1).toByte(),
-            cal.get(java.util.Calendar.DAY_OF_MONTH).toByte(),
-            cal.get(java.util.Calendar.HOUR_OF_DAY).toByte(),
-            cal.get(java.util.Calendar.MINUTE).toByte(),
-            cal.get(java.util.Calendar.SECOND).toByte()
-        )
-
-        var serviceDelay = 0L
-        for (candidateUuid in NexusParser.SYNC_CANDIDATES) {
-            var targetChar: BluetoothGattCharacteristic? = null
-            
-            // Look for this specific candidate in the discovered services
-            outer@for (service in gatt.services) {
-                for (char in service.characteristics) {
-                    if (char.uuid.toString().equals(candidateUuid, ignoreCase = true)) {
-                        targetChar = char
-                        break@outer
-                    }
-                }
-            }
-            
-            if (targetChar != null && ((targetChar.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) != 0)) {
-                val shortUuid = NexusParser.shortUuid(targetChar.uuid.toString())
-                val writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-
-                handler.postDelayed({
-                    if (!isConnected || !hasPermissions()) return@postDelayed
-                    
-                    Log.i(TAG, "Sequential Sync Phase: Attempting write to $shortUuid")
-                    showToast("Syncing via $shortUuid…")
-
-                    // Execute Unix Sync (0.5s from phase start)
-                    if (method == 0 || method == 1) {
-                        handler.postDelayed({
-                            if (isConnected && hasPermissions()) {
-                                Log.d(TAG, "Sync: Sending Unix block to $shortUuid: ${NexusParser.toHexString(configPayload.take(10).toByteArray())}…")
-                                val ok = writeCharacteristicCompat(gatt, targetChar, configPayload, writeType)
-                                if (!ok) showToast("$shortUuid: Unix Write Rejected")
-                            }
-                        }, 500)
-                    }
-
-                    // Execute Calendar Sync (2.5s from phase start)
-                    if (method == 0 || method == 2) {
-                        handler.postDelayed({
-                            if (isConnected && hasPermissions()) {
-                                Log.d(TAG, "Sync: Sending Calendar block to $shortUuid")
-                                val ok = writeCharacteristicCompat(gatt, targetChar, calendarPayload, writeType)
-                                if (!ok) showToast("$shortUuid: Calendar Write Rejected")
-                            }
-                        }, 2500)
-                    }
-                }, serviceDelay)
-                
-                serviceDelay += 5000L // 5 seconds between different services to allow cluster to process
-            }
-        }
-    }
-
     private fun writeCharacteristicCompat(gatt: BluetoothGatt, char: BluetoothGattCharacteristic, data: ByteArray, writeType: Int): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val result = gatt.writeCharacteristic(char, data, writeType)
-            Log.d(TAG, "Write result (T+): $result")
             result == BluetoothStatusCodes.SUCCESS
         } else {
             @Suppress("DEPRECATION") char.value = data
             @Suppress("DEPRECATION") char.writeType = writeType
             @Suppress("DEPRECATION") val result = gatt.writeCharacteristic(char)
-            Log.d(TAG, "Write result: $result")
             result
         }
     }
 
+    private var currentToast: Toast? = null
     private fun showToast(msg: String) {
         handler.post {
-            Toast.makeText(this@BleService, msg, Toast.LENGTH_SHORT).show()
+            try {
+                currentToast?.cancel()
+                val toast = Toast.makeText(this@BleService, msg, Toast.LENGTH_SHORT)
+                currentToast = toast
+                toast.show()
+            } catch (e: Exception) {
+                Log.w(TAG, "showToast error: ${e.message}")
+            }
         }
     }
 
