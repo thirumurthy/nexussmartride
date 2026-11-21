@@ -131,6 +131,7 @@ class BleService : LifecycleService() {
         sendCallDetailsToCluster(callerName = null, callStatus = 0xFF, missedCount = NexusParser.getMissedCallCount(this@BleService))
     }
 
+    private var lastPeriodicCloudSyncTime = 0L
     private val dbLogRunnable = object : Runnable {
         override fun run() {
             if (isConnected) {
@@ -138,6 +139,12 @@ class BleService : LifecycleService() {
                 if (data.isValid) {
                     serviceScope.launch {
                         repository.saveLog(data)
+                    }
+                    val now = System.currentTimeMillis()
+                    if (now - lastPeriodicCloudSyncTime >= 10 * 60 * 1000L) {
+                        lastPeriodicCloudSyncTime = now
+                        com.thirutricks.nexussmartride.sync.NexusCloudSyncManager.getInstance(this@BleService)
+                            .onPeriodicSync(targetAddress, data)
                     }
                 }
             }
@@ -457,6 +464,11 @@ class BleService : LifecycleService() {
                 isConnected = false
                 sendBroadcast(ACTION_DISCONNECTED)
                 updateNotification("Disconnected from scooter")
+
+                // Cloud Sync on Cluster Disconnect (Ride End)
+                com.thirutricks.nexussmartride.sync.NexusCloudSyncManager.getInstance(this@BleService)
+                    .onClusterDisconnected(targetAddress, repository.currentData.value)
+
                 if (targetAddress != null) {
                     reconnect()
                 }
@@ -513,6 +525,10 @@ class BleService : LifecycleService() {
 
                     handler.removeCallbacks(periodicSyncRunnable)
                     handler.postDelayed(periodicSyncRunnable, SYNC_INTERVAL_MS)
+
+                    // Cloud Sync on Cluster Connect (Session Start)
+                    com.thirutricks.nexussmartride.sync.NexusCloudSyncManager.getInstance(this@BleService)
+                        .onClusterConnected(targetAddress, repository.currentData.value)
                 }
             }
             handler.postDelayed({ writeNextDescriptor(gatt) }, DESCRIPTOR_WRITE_DELAY_MS)
@@ -547,6 +563,9 @@ class BleService : LifecycleService() {
             val parsed = NexusParser.parse(data) ?: return
 
             repository.updateCurrentData(parsed)
+
+            // Feed live telemetry to Edge AI Engine
+            com.thirutricks.nexussmartride.ai.SmartAiEngine.updateTelemetry(parsed)
 
             // Handle Global Media Action from Scooty Handlebar
             if (parsed.songAction != -1) {

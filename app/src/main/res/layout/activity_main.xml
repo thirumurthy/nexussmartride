@@ -40,19 +40,39 @@
                     android:alpha="0.7" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvStatus"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"
-                android:text="DISCONNECTED"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp"
-                android:letterSpacing="0.1"
-                android:background="@drawable/bg_glass_card"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvCloudSyncBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CLOUD IDLE"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:letterSpacing="0.1"
+                    android:background="@drawable/bg_glass_card"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DISCONNECTED"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.1"
+                    android:background="@drawable/bg_glass_card"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp" />
+            </LinearLayout>
         </RelativeLayout>
 
         <!-- Speedometer Section (Main Focus) -->
@@ -240,6 +260,254 @@
                 </LinearLayout>
 
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- AI Smart Coach & Fleet Cloud Insights Card -->
+        <LinearLayout
+            android:id="@+id/cardAiCloudInsights"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_glass_card"
+            android:padding="20dp"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI SMART COACH &amp; CLOUD INSIGHTS"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="10sp"
+                    android:letterSpacing="0.2"
+                    android:fontFamily="sans-serif-black" />
+
+                <TextView
+                    android:id="@+id/tvCloudSyncTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:text="Not synced"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp" />
+            </RelativeLayout>
+
+            <!-- AI Dynamic Range & Eco Score -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="14dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@color/glass_surface"
+                    android:padding="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI PREDICTED RANGE"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8.5sp"
+                        android:letterSpacing="0.1" />
+                    <TextView
+                        android:id="@+id/tvAiRange"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="-- km"
+                        android:textColor="@color/accent_green"
+                        android:textSize="18sp"
+                        android:fontFamily="sans-serif-bold" />
+                    <TextView
+                        android:id="@+id/tvAiRangeSub"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Calibrating pace..."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8.5sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@color/glass_surface"
+                    android:padding="12dp"
+                    android:layout_marginStart="6dp"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ECO RIDING SCORE"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8.5sp"
+                        android:letterSpacing="0.1" />
+                    <TextView
+                        android:id="@+id/tvAiEcoScore"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="85/100"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="18sp"
+                        android:fontFamily="sans-serif-bold" />
+                    <TextView
+                        android:id="@+id/tvAiEcoRating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Efficient Rider"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- AI Coach Tip Banner -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/glass_surface"
+                android:padding="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💡"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="10dp" />
+
+                <TextView
+                    android:id="@+id/tvAiCoachTip"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Maintain smooth cruising between 35-45 km/h for maximum range."
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:lineSpacingExtra="2dp" />
+            </LinearLayout>
+
+            <!-- Fleet Cloud Savings Grid -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CLOUD FLEET IMPACT"
+                android:textColor="@color/text_secondary"
+                android:textSize="9sp"
+                android:letterSpacing="0.2"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SAVINGS"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8sp" />
+                    <TextView
+                        android:id="@+id/tvCloudMoneySaved"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="₹0"
+                        android:textColor="@color/accent_green"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PETROL"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8sp" />
+                    <TextView
+                        android:id="@+id/tvCloudPetrolSaved"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.0 L"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CO2 OFFSET"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8sp" />
+                    <TextView
+                        android:id="@+id/tvCloudCo2Saved"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.0 kg"
+                        android:textColor="@color/accent_orange"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SERVICE IN"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="8sp" />
+                    <TextView
+                        android:id="@+id/tvCloudNextService"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1000 km"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Sync Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCloudSyncNow"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="SYNC WITH CLOUD SERVER"
+                android:textSize="10sp"
+                app:strokeColor="@color/accent_cyan"
+                android:textColor="@color/accent_cyan" />
+
         </LinearLayout>
 
         <!-- Speed Graph -->

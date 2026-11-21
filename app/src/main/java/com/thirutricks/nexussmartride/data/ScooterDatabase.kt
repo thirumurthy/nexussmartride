@@ -29,6 +29,24 @@ data class DailyTravelEntity(
     val lastOdometer: Double = 0.0
 )
 
+/**
+ * Entity to store queued offline sync payloads until network connectivity is available.
+ */
+@Entity(tableName = "pending_syncs")
+data class PendingSyncEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val deviceId: String,
+    val timestamp: Long,
+    val trigger: String, // DISCONNECT, CONNECT, PERIODIC, MANUAL
+    val odometerKm: Double,
+    val tripKm: Double,
+    val socPercent: Int,
+    val remainingRangeKm: Int,
+    val ridingMode: String,
+    val appVersion: String,
+    val retryCount: Int = 0
+)
+
 @Dao
 interface ScooterDao {
     @Insert
@@ -49,9 +67,22 @@ interface ScooterDao {
 
     @Query("SELECT * FROM daily_travel ORDER BY date DESC LIMIT 30")
     fun getAllDailyTravel(): Flow<List<DailyTravelEntity>>
+
+    // Offline Cloud Sync Queue
+    @Insert
+    suspend fun insertPendingSync(sync: PendingSyncEntity): Long
+
+    @Query("SELECT * FROM pending_syncs ORDER BY timestamp ASC")
+    suspend fun getPendingSyncs(): List<PendingSyncEntity>
+
+    @Query("DELETE FROM pending_syncs WHERE id = :id")
+    suspend fun deletePendingSync(id: Long)
+
+    @Query("SELECT COUNT(*) FROM pending_syncs")
+    fun getPendingSyncCount(): Flow<Int>
 }
 
-@Database(entities = [ScooterLogEntity::class, DailyTravelEntity::class], version = 1)
+@Database(entities = [ScooterLogEntity::class, DailyTravelEntity::class, PendingSyncEntity::class], version = 2)
 abstract class ScooterDatabase : RoomDatabase() {
     abstract fun scooterDao(): ScooterDao
 
@@ -65,7 +96,9 @@ abstract class ScooterDatabase : RoomDatabase() {
                     context.applicationContext,
                     ScooterDatabase::class.java,
                     "scooter_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

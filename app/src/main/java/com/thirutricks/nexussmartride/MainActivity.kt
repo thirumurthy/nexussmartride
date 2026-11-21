@@ -23,9 +23,13 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.lifecycle.lifecycleScope
+import com.thirutricks.nexussmartride.ai.AiRideState
+import com.thirutricks.nexussmartride.ai.SmartAiEngine
 import com.thirutricks.nexussmartride.data.ScooterDatabase
 import com.thirutricks.nexussmartride.data.ScooterRepository
 import com.thirutricks.nexussmartride.databinding.ActivityMainBinding
+import com.thirutricks.nexussmartride.sync.NexusCloudSyncManager
+import com.thirutricks.nexussmartride.sync.ServerInsights
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -157,6 +161,20 @@ class MainActivity : AppCompatActivity() {
                 updateUi(data)
             }
         }
+
+        // Live Cloud Telemetry Insights (Fleet savings, service countdown, sync status)
+        lifecycleScope.launch {
+            NexusCloudSyncManager.getInstance(this@MainActivity).insights.collectLatest { ins ->
+                updateCloudInsightsUi(ins)
+            }
+        }
+
+        // Live Edge AI Telemetry State (Dynamic range, eco score, coach tips)
+        lifecycleScope.launch {
+            SmartAiEngine.aiState.collectLatest { ai ->
+                updateAiStateUi(ai)
+            }
+        }
         
         // Periodic travel stats refresh
         lifecycleScope.launch {
@@ -171,6 +189,13 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Show stale indicator if data is old
         updateStaleIndicator()
+
+        // Fetch latest server insights if a scooter is paired
+        savedAddress?.let { addr ->
+            lifecycleScope.launch {
+                NexusCloudSyncManager.getInstance(this@MainActivity).fetchInsights(addr)
+            }
+        }
 
         // When Notification Access permission is granted, rebind and sync music immediately!
         if (isNotificationListenerEnabled()) {
@@ -244,6 +269,18 @@ class MainActivity : AppCompatActivity() {
                 MapNotificationListenerService.triggerActiveMediaSync()
             } else {
                 Toast.makeText(this, "Connect to scooter first to sync time", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Manual Cloud Sync button
+        binding.btnCloudSyncNow.setOnClickListener {
+            val syncManager = NexusCloudSyncManager.getInstance(this)
+            binding.btnCloudSyncNow.isEnabled = false
+            binding.btnCloudSyncNow.text = "SYNCING WITH CLOUD..."
+            syncManager.triggerManualSync(savedAddress, repository.currentData.value) { _, msg ->
+                binding.btnCloudSyncNow.isEnabled = true
+                binding.btnCloudSyncNow.text = "SYNC WITH CLOUD SERVER"
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -355,11 +392,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSyncSettingsDialog() {
+        val menuOptions = arrayOf(
+            "Cluster Time Sync Method",
+            "Nexus Cloud Server & API Settings",
+            "Force Cloud Telemetry Sync"
+        )
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Sync & Telemetry Settings")
+            .setItems(menuOptions) { _, which ->
+                when (which) {
+                    0 -> showClusterTimeSyncDialog()
+                    1 -> showCloudServerDialog()
+                    2 -> {
+                        Toast.makeText(this, "Syncing telemetry with cloud...", Toast.LENGTH_SHORT).show()
+                        NexusCloudSyncManager.getInstance(this).triggerManualSync(savedAddress, repository.currentData.value) { _, msg ->
+                            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun showClusterTimeSyncDialog() {
         val options = arrayOf("Both (Recommended)", "Unix Block Only", "Calendar Block Only")
         val currentMethod = prefs.getInt("sync_method", 0)
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Time Sync Method")
+            .setTitle("Cluster Time Sync Method")
             .setSingleChoiceItems(options, currentMethod) { dialog, which ->
                 prefs.edit().putInt("sync_method", which).apply()
                 Toast.makeText(this, "Sync method: ${options[which]}", Toast.LENGTH_SHORT).show()
@@ -378,6 +440,38 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showCloudServerDialog() {
+        val cloudManager = NexusCloudSyncManager.getInstance(this)
+        val serverUrl = cloudManager.getServerUrl()
+        val ins = cloudManager.insights.value
+
+        val status = when (ins.syncStatus) {
+            "SUCCESS" -> "Connected & Active"
+            "SYNCING" -> "Synchronizing..."
+            "QUEUED"  -> "${ins.pendingQueueCount} items queued offline"
+            else      -> "Ready"
+        }
+
+        val message = "Server Endpoint:\n$serverUrl\n\n" +
+                "Device Identifier:\n${savedAddress ?: "No paired scooter (Default ID used)"}\n\n" +
+                "Cloud Status: $status\n" +
+                "Last Synced: ${if (ins.lastSyncTimeMs > 0) timeFormat.format(Date(ins.lastSyncTimeMs)) else "Never"}\n\n" +
+                "Fleet Petrol Saved: %.1f L\n".format(ins.petrolSavedLiters) +
+                "Fleet Money Saved: ₹${ins.moneySavedInr}\n" +
+                "CO2 Offset: %.1f kg".format(ins.co2SavedKg)
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Nexus Cloud Server")
+            .setMessage(message)
+            .setPositiveButton("Sync Now") { _, _ ->
+                cloudManager.triggerManualSync(savedAddress, repository.currentData.value) { _, msg ->
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Close", null)
             .show()
     }
 
@@ -508,6 +602,66 @@ class MainActivity : AppCompatActivity() {
         runOnUiThread {
             binding.tvTodayKm.text = "%.1f km".format(today)
             binding.tvYesterdayKm.text = "%.1f km".format(yesterday)
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateCloudInsightsUi(ins: ServerInsights) {
+        runOnUiThread {
+            // Cloud Sync Badge in Header
+            when (ins.syncStatus) {
+                "SYNCING" -> {
+                    binding.tvCloudSyncBadge.text = "☁ SYNCING..."
+                    binding.tvCloudSyncBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan))
+                }
+                "QUEUED" -> {
+                    val count = if (ins.pendingQueueCount > 0) "${ins.pendingQueueCount} " else ""
+                    binding.tvCloudSyncBadge.text = "☁ ${count}QUEUED"
+                    binding.tvCloudSyncBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_orange))
+                }
+                "SUCCESS" -> {
+                    binding.tvCloudSyncBadge.text = "☁ CLOUD OK"
+                    binding.tvCloudSyncBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+                }
+                "ERROR" -> {
+                    binding.tvCloudSyncBadge.text = "☁ SYNC RETRY"
+                    binding.tvCloudSyncBadge.setTextColor(ContextCompat.getColor(this, R.color.accent_red))
+                }
+                else -> {
+                    binding.tvCloudSyncBadge.text = "☁ CLOUD IDLE"
+                    binding.tvCloudSyncBadge.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                }
+            }
+
+            // Fleet Impact & Cloud Savings
+            binding.tvCloudMoneySaved.text = "₹${ins.moneySavedInr}"
+            binding.tvCloudPetrolSaved.text = "%.1f L".format(ins.petrolSavedLiters)
+            binding.tvCloudCo2Saved.text = "%.1f kg".format(ins.co2SavedKg)
+            binding.tvCloudNextService.text = if (ins.kmUntilService > 0) "%.0f km".format(ins.kmUntilService) else "Due Now"
+
+            if (ins.lastSyncTimeMs > 0) {
+                val diffMin = (System.currentTimeMillis() - ins.lastSyncTimeMs) / 60000
+                binding.tvCloudSyncTime.text = if (diffMin <= 0) "Synced just now" else "Synced ${diffMin}m ago"
+            } else {
+                binding.tvCloudSyncTime.text = "Not synced"
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateAiStateUi(ai: AiRideState) {
+        runOnUiThread {
+            binding.tvAiRange.text = "${ai.aiPredictedRangeKm} km"
+            binding.tvAiRangeSub.text = "${ai.estimatedKmPerSoc} km/% • ${ai.rangeConfidence}"
+            binding.tvAiEcoScore.text = "${ai.ecoScore}/100"
+            binding.tvAiEcoRating.text = ai.ecoRating
+            binding.tvAiCoachTip.text = ai.coachTip
+
+            when {
+                ai.ecoScore >= 90 -> binding.tvAiEcoScore.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+                ai.ecoScore >= 75 -> binding.tvAiEcoScore.setTextColor(ContextCompat.getColor(this, R.color.accent_cyan))
+                else -> binding.tvAiEcoScore.setTextColor(ContextCompat.getColor(this, R.color.accent_orange))
+            }
         }
     }
 
