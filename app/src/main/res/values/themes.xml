@@ -16,6 +16,8 @@
         <item name="android:statusBarColor">@color/surface_container_lowest</item>
         <item name="android:navigationBarColor">@color/surface_container_lowest</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/inter</item>
     </style>
 
 </resources>
