@@ -53,6 +53,24 @@ object NexusParser {
     private const val TYPE_DATA   = 0x01
     private const val TYPE_CONFIG = 0x02
 
+    // Display Mode Opcodes (Tag 49) matching Ampere Nexus cluster firmware:
+    const val MODE_NAV_STARTING = 0x00
+    const val MODE_NAVIGATION   = 0x01
+    const val MODE_MIRRORING    = 0x02
+    const val MODE_IDLE         = 0xFF
+
+    // Direction Opcodes (Tag 40) matching Ampere Nexus cluster firmware (Function 16921):
+    const val MANEUVER_SLIGHT_RIGHT = 0x01
+    const val MANEUVER_SLIGHT_LEFT  = 0x02
+    const val MANEUVER_STRAIGHT     = 0x03
+    const val MANEUVER_LEFT         = 0x04
+    const val MANEUVER_RIGHT        = 0x05
+    const val MANEUVER_UTURN_LEFT   = 0x06
+    const val MANEUVER_UTURN_RIGHT  = 0x07 // Also Roundabout
+    const val MANEUVER_UTURN        = MANEUVER_UTURN_LEFT
+    const val MANEUVER_ROUNDABOUT   = MANEUVER_UTURN_RIGHT
+    const val MANEUVER_CLEAR        = 0xFF
+
     // Field IDs
     private const val FIELD_SPEED       = 0x01
     private const val FIELD_CALL_ACTION = 0x47  // 0x01: Answer, 0x02: Reject
@@ -373,6 +391,7 @@ object NexusParser {
     private var cachedTurnDist: Int = 0
     private var cachedTripDist: Int = 0
     private var cachedRoadName: String = ""
+    private var cachedDisplayMode: Int = MODE_IDLE
     private var cachedGpsFixed: Boolean = false
 
     private var cachedCallerName: String? = null
@@ -395,6 +414,7 @@ object NexusParser {
         turnDistanceMeters: Int = cachedTurnDist,
         totalDistanceMeters: Int = cachedTripDist,
         roadName: String? = cachedRoadName,
+        displayMode: Int = cachedDisplayMode,
         isGpsFixed: Boolean = cachedGpsFixed,
         callerName: String? = cachedCallerName,
         callStatus: Int = cachedCallStatus,
@@ -410,6 +430,7 @@ object NexusParser {
         cachedTurnDist = turnDistanceMeters
         cachedTripDist = totalDistanceMeters
         cachedRoadName = roadName ?: ""
+        cachedDisplayMode = displayMode
         cachedGpsFixed = isGpsFixed
         cachedCallerName = callerName
         cachedCallStatus = callStatus
@@ -436,7 +457,8 @@ object NexusParser {
         val roadHex = toPaddedHex(cachedRoadName, 64)
         val roadBlock = roadHex.substring(0, 2) + "02" + roadHex.substring(2, 40) + "03" + roadHex.substring(40, 64)
 
-        val gpsHex = if (isGpsFixed) "01" else "FF"
+        // Display Mode: 0x00=Initializing, 0x01=TBT Navigation, 0x02=Mirroring, 0xFF=Idle (Function 13218)
+        val modeHex = "%02X".format(displayMode and 0xFF)
 
         // Caller block: 44 + 4 hex (2B) + 04 + 38 hex (19B) + 05 + 6 hex (3B) = 26 bytes = 52 hex chars (Function 13174)
         val isCallActive = !callerName.isNullOrEmpty() && (callStatus == 0 || callStatus == 1 || callStatus == 2 || callStatus == 3)
@@ -469,7 +491,14 @@ object NexusParser {
 
         val progHex = "%02X%02X".format(progressSec and 0xFF, (progressSec shr 8) and 0xFF)
         val durHex = "%02X%02X".format(durationSec and 0xFF, (durationSec shr 8) and 0xFF)
-        val stateHex = if (isPlaying) "01" else (if (!songTitle.isNullOrBlank()) "02" else "09")
+        val stateHex = if (isPlaying) "01" else (if (!songTitle.isNullOrBlank()) "02" else "0E")
+
+        // Tag 39 Session Active Flag: 39 29 00 00 FF... (active) or 39 00 00 00 FF... (idle)
+        val sessionHex = if (displayMode == MODE_NAVIGATION || displayMode == MODE_MIRRORING || displayMode == MODE_NAV_STARTING) {
+            "39290000FFFFFFFFFFFFFF"
+        } else {
+            "39000000FFFFFFFFFFFFFF"
+        }
 
         val hexString = "0102" +
             tsHex +
@@ -477,7 +506,7 @@ object NexusParser {
             "41" + turnDistHex +
             "42" + totalDistHex +
             "43" + roadBlock +
-            "49" + gpsHex + "4FFF" +
+            "49" + modeHex + "4FFF" +
             "44" + callerBlock +
             "4D" + stHex + "4E" + missedHex +
             "45" + songBlock +
@@ -485,7 +514,7 @@ object NexusParser {
             "4A" + progHex +
             "4B" + durHex +
             "4C" + stateHex +
-            "390000FFFFFFFFFFFFFFFF"
+            sessionHex
 
         return hexStringToByteArray(hexString)
     }
@@ -535,6 +564,18 @@ object NexusParser {
         return hexStringToByteArray(sb.substring(0, 80))
     }
 
+    /**
+     * Handshake packet 0114 sent to Characteristic 20032202 (TERTIARY).
+     * Specifies the companion App and Navigation version strings.
+     * Verified from btsnoop HCI log: 40 bytes ending in 0x01.
+     */
+    fun buildHandshake0114(appVer: String = "AA 50/2 (9)", navVer: String = "BNA 0/0 (0)"): ByteArray {
+        val p1Hex = toPaddedHex(appVer, 34)
+        val p2Hex = toPaddedHex(navVer, 34)
+        val hexString = "01142F0114" + p1Hex + p2Hex + "01"
+        return hexStringToByteArray(hexString)
+    }
+
     private fun toAsciiHex(text: String): String {
         val sb = StringBuilder()
         for (ch in text) {
@@ -562,6 +603,7 @@ object NexusParser {
         turnDistanceMeters: Int,
         totalDistanceMeters: Int,
         roadName: String?,
+        displayMode: Int = MODE_NAVIGATION,
         isGpsFixed: Boolean = true
     ): ByteArray {
         return buildUnifiedClusterPacket(
@@ -569,7 +611,26 @@ object NexusParser {
             turnDistanceMeters = turnDistanceMeters,
             totalDistanceMeters = totalDistanceMeters,
             roadName = roadName,
+            displayMode = displayMode,
             isGpsFixed = isGpsFixed
+        )
+    }
+
+    /**
+     * Clears turn-by-turn navigation data and restores cluster to Idle mode (showing Trip Completed).
+     */
+    fun clearNavigationPacket(): ByteArray {
+        cachedManeuver = MANEUVER_CLEAR
+        cachedTurnDist = 0
+        cachedTripDist = 0
+        cachedRoadName = ""
+        cachedDisplayMode = MODE_IDLE
+        return buildUnifiedClusterPacket(
+            maneuverDirection = MANEUVER_CLEAR,
+            turnDistanceMeters = 0,
+            totalDistanceMeters = 0,
+            roadName = "",
+            displayMode = MODE_IDLE
         )
     }
 
@@ -596,14 +657,15 @@ object NexusParser {
 
     /**
      * Builds packet to provision Wi-Fi Hotspot credentials to the scooter cluster display.
-     * Reverse engineered from Ampere Connect Function 13180 and 13183.
+     * Reverse engineered from Ampere Connect Function 13180 and 13183 and verified against btsnoop HCI logs.
      *
-     * Format: 0x20 + SSID (hex padded to 64 chars) + Password (hex padded to 128 chars) + FFFFFF
+     * Format: 0x20 + SSID (hex padded to 64 chars) + Password (hex padded to 128 chars) + 342E35FF ("4.5\xff")
+     * Total packet length: 101 bytes
      */
     fun buildHotspotProvisioningPacket(ssid: String, password: String): ByteArray {
         val ssidHex = toPaddedHex(ssid, 64)
         val pwdHex = toPaddedHex(password, 128)
-        val hexString = "20" + ssidHex + pwdHex + "FFFFFF"
+        val hexString = "20" + ssidHex + pwdHex + "342E35FF"
         return hexStringToByteArray(hexString)
     }
 

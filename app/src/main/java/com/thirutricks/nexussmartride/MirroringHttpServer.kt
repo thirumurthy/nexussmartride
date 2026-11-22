@@ -102,7 +102,9 @@ class MirroringHttpServer(
                 headerLine = input.readLine()
             }
 
-            if (path == "/" || path == "/stream.jpeg" || path.startsWith("/stream.jpeg")) {
+            if (path == "/" || path == "/stream.jpeg" || path == "/stream.jpg" ||
+                path.startsWith("/stream.jpeg") || path.startsWith("/stream.jpg") ||
+                path.endsWith(".jpeg") || path.endsWith(".jpg")) {
                 serveStreamJpeg(output)
             } else {
                 sendNotFound(output)
@@ -117,16 +119,15 @@ class MirroringHttpServer(
 
     private fun serveStreamJpeg(output: OutputStream) {
         val file = streamFile
-        if (!file.exists() || file.length() == 0L) {
-            sendNotFound(output)
-            return
-        }
+        val bytes = if (file.exists() && file.length() > 0L) {
+            try { file.readBytes() } catch (_: Exception) { null }
+        } else null
 
+        val finalBytes = bytes ?: generatePlaceholderFrame()
         try {
-            val bytes = file.readBytes()
             val header = "HTTP/1.1 200 OK\r\n" +
                          "Content-Type: image/jpeg\r\n" +
-                         "Content-Length: ${bytes.size}\r\n" +
+                         "Content-Length: ${finalBytes.size}\r\n" +
                          "Connection: close\r\n" +
                          "Access-Control-Allow-Origin: *\r\n" +
                          "Cache-Control: no-cache, no-store, must-revalidate\r\n" +
@@ -134,10 +135,30 @@ class MirroringHttpServer(
                          "Expires: 0\r\n\r\n"
 
             output.write(header.toByteArray(Charsets.US_ASCII))
-            output.write(bytes)
+            output.write(finalBytes)
         } catch (e: Exception) {
             // Stream file may be locked during atomic rename; silent catch
         }
+    }
+
+    private fun generatePlaceholderFrame(): ByteArray {
+        val bmp = android.graphics.Bitmap.createBitmap(800, 360, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bmp)
+        canvas.drawColor(android.graphics.Color.BLACK)
+        val paint = android.graphics.Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = 28f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+        }
+        canvas.drawText("Ampere Nexus SmartRide Connected", 400f, 170f, paint)
+        paint.textSize = 18f
+        paint.color = android.graphics.Color.CYAN
+        canvas.drawText("Screen Mirroring Active • Streaming 800x360", 400f, 210f, paint)
+        val stream = ByteArrayOutputStream()
+        bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, stream)
+        bmp.recycle()
+        return stream.toByteArray()
     }
 
     private fun sendNotFound(output: OutputStream) {

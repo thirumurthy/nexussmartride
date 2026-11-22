@@ -89,6 +89,36 @@ class BleService : LifecycleService() {
     private var isScanning = false
     private var isAutoReconnecting = false
 
+    @Volatile private var isNavigating = false
+    val isClusterNavigating: Boolean get() = isNavigating
+    @Volatile private var isMirroring = false
+    @Volatile private var hotspotSsid: String? = null
+    @Volatile private var hotspotPwd: String? = null
+    private var navStartingCount = 0
+
+    private val continuousClusterUpdateRunnable = object : Runnable {
+        override fun run() {
+            if (isConnected) {
+                if (isMirroring) {
+                    val packet = NexusParser.buildUnifiedClusterPacket(displayMode = NexusParser.MODE_MIRRORING)
+                    writePacketToCluster(packet)
+                } else if (isNavigating) {
+                    val mode = if (navStartingCount < 3) {
+                        navStartingCount++
+                        NexusParser.MODE_NAV_STARTING
+                    } else {
+                        NexusParser.MODE_NAVIGATION
+                    }
+                    val packet = NexusParser.buildUnifiedClusterPacket(displayMode = mode)
+                    writePacketToCluster(packet)
+                }
+            }
+            if (isNavigating || isMirroring) {
+                handler.postDelayed(this, 1000L)
+            }
+        }
+    }
+
     private val handler = Handler(Looper.getMainLooper())
 
     private val descriptorQueue = ArrayDeque<BluetoothGattDescriptor>()
@@ -462,6 +492,7 @@ class BleService : LifecycleService() {
                 handler.postDelayed({ if (hasPermissions()) gatt.discoverServices() }, POST_CONNECT_WAIT_MS)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 isConnected = false
+                handler.removeCallbacks(continuousClusterUpdateRunnable)
                 sendBroadcast(ACTION_DISCONNECTED)
                 updateNotification("Disconnected from scooter")
 
@@ -517,11 +548,14 @@ class BleService : LifecycleService() {
                     handler.removeCallbacks(watchdogRunnable)
                     handler.postDelayed(watchdogRunnable, WATCHDOG_TIMEOUT_MS)
 
+                    // Execute initial Registration Handshake matching official Ampere Connect sequence
+                    sendRegistrationHandshake(gatt)
+
                     // Execute time sync across multiple candidate characteristics with live toasts
-                    syncScooterTime(gatt)
+                    handler.postDelayed({ syncScooterTime(gatt) }, 800L)
 
                     // Immediately query and sync active song if media player is running
-                    MapNotificationListenerService.triggerActiveMediaSync()
+                    handler.postDelayed({ MapNotificationListenerService.triggerActiveMediaSync() }, 1500L)
 
                     handler.removeCallbacks(periodicSyncRunnable)
                     handler.postDelayed(periodicSyncRunnable, SYNC_INTERVAL_MS)
@@ -697,6 +731,16 @@ class BleService : LifecycleService() {
 
     private fun queueCharacteristicWrite(char: BluetoothGattCharacteristic, data: ByteArray) {
         synchronized(charWriteQueue) {
+            // Drop any stale 160B cluster frames waiting in queue to avoid queue latency
+            if (data.size == 160) {
+                val it = charWriteQueue.iterator()
+                while (it.hasNext()) {
+                    val entry = it.next()
+                    if (entry.second.size == 160) {
+                        it.remove()
+                    }
+                }
+            }
             charWriteQueue.add(Pair(char, data))
             if (!isWritingCharacteristic) {
                 writeNextCharacteristic()
@@ -775,6 +819,44 @@ class BleService : LifecycleService() {
     }
 
     /**
+     * Updates live turn-by-turn navigation data and starts the continuous 1 Hz cluster update stream.
+     */
+    fun updateNavigationToCluster(
+        maneuverDirection: Int,
+        turnDistanceMeters: Int,
+        totalDistanceMeters: Int,
+        roadName: String?
+    ) {
+        isNavigating = true
+        val displayMode = if (isMirroring) {
+            NexusParser.MODE_MIRRORING
+        } else if (navStartingCount < 3) {
+            navStartingCount++
+            NexusParser.MODE_NAV_STARTING
+        } else {
+            NexusParser.MODE_NAVIGATION
+        }
+
+        val safeTotalDist = if (totalDistanceMeters > turnDistanceMeters) {
+            totalDistanceMeters
+        } else {
+            maxOf(turnDistanceMeters + 1000, 5000)
+        }
+
+        val payload = NexusParser.buildNavigationPacket(
+            maneuverDirection = maneuverDirection,
+            turnDistanceMeters = turnDistanceMeters,
+            totalDistanceMeters = safeTotalDist,
+            roadName = roadName,
+            displayMode = displayMode
+        )
+        // Dispatches immediate frame then maintains the 1 Hz continuous loop
+        handler.removeCallbacks(continuousClusterUpdateRunnable)
+        writePacketToCluster(payload)
+        handler.postDelayed(continuousClusterUpdateRunnable, 1000L)
+    }
+
+    /**
      * Sends Google Maps turn-by-turn navigation cues to the scooter cluster display (Option A).
      */
     fun sendNavigationToCluster(
@@ -784,14 +866,88 @@ class BleService : LifecycleService() {
         roadName: String?,
         isGpsFixed: Boolean = true
     ) {
-        val payload = NexusParser.buildNavigationPacket(
-            maneuverDirection,
-            turnDistanceMeters,
-            totalDistanceMeters,
-            roadName,
-            isGpsFixed
-        )
-        writePacketToCluster(payload)
+        if (maneuverDirection == NexusParser.MANEUVER_CLEAR && !isGpsFixed) {
+            clearNavigationFromCluster()
+        } else {
+            updateNavigationToCluster(maneuverDirection, turnDistanceMeters, totalDistanceMeters, roadName)
+        }
+    }
+
+    /**
+     * Clears navigation from the scooter cluster, stops the 1 Hz loop, and sends the
+     * Trip Completed / Idle packet 3 times to ensure the cluster screen returns to default.
+     */
+    fun clearNavigationFromCluster() {
+        Log.i(TAG, "Clearing cluster navigation and restoring Idle/Trip Completed state")
+        isNavigating = false
+        navStartingCount = 0
+        if (!isMirroring) {
+            handler.removeCallbacks(continuousClusterUpdateRunnable)
+        }
+        val clearPacket = NexusParser.clearNavigationPacket()
+        writePacketToCluster(clearPacket)
+        handler.postDelayed({ if (!isNavigating && !isMirroring) writePacketToCluster(clearPacket) }, 300L)
+        handler.postDelayed({ if (!isNavigating && !isMirroring) writePacketToCluster(clearPacket) }, 600L)
+    }
+
+    /**
+     * Starts Screen Mirroring Mode:
+     * 1. Provisions Wi-Fi Hotspot credentials via BLE packet 0x20 (sent 5 times at 1s intervals).
+     * 2. Sets display mode to MODE_MIRRORING (0x02) and starts 1 Hz continuous cluster update stream AFTER provisioning.
+     */
+    fun startMirroringMode(ssid: String, password: String) {
+        Log.i(TAG, "Starting Screen Mirroring Mode: SSID=$ssid")
+        isMirroring = true
+        hotspotSsid = ssid
+        hotspotPwd = password
+
+        handler.removeCallbacks(continuousClusterUpdateRunnable)
+
+        val hotspotPacket = NexusParser.buildHotspotProvisioningPacket(ssid, password)
+        // Send packet 0x20 5 times at 1s intervals (exact official Ampere Connect pattern)
+        for (i in 0 until 5) {
+            handler.postDelayed({
+                if (isMirroring) {
+                    Log.d(TAG, "Dispatching Hotspot Provisioning packet 0x20 (attempt ${i + 1}/5)")
+                    writePacketToCluster(hotspotPacket)
+                }
+            }, i * 1000L)
+        }
+
+        // Start 1 Hz mirroring frames AFTER all 5 hotspot provisioning packets have finished (at 5000ms)
+        // Matching exact BTSnoop log (packets 439-459 were 0x20, packet 463 was first MODE_MIRRORING frame)
+        handler.postDelayed({
+            if (isMirroring) {
+                Log.d(TAG, "Starting continuous MODE_MIRRORING cluster stream")
+                val mirrorFrame = NexusParser.buildUnifiedClusterPacket(displayMode = NexusParser.MODE_MIRRORING)
+                writePacketToCluster(mirrorFrame)
+                handler.postDelayed(continuousClusterUpdateRunnable, 1000L)
+            }
+        }, 5000L)
+    }
+
+    /**
+     * Stops Screen Mirroring Mode:
+     * Reverts display mode back to MODE_NAVIGATION if navigation is active,
+     * or back to MODE_IDLE if inactive.
+     */
+    fun stopMirroringMode() {
+        Log.i(TAG, "Stopping Screen Mirroring Mode")
+        isMirroring = false
+        hotspotSsid = null
+        hotspotPwd = null
+
+        if (isNavigating) {
+            Log.i(TAG, "TBT Navigation still active: reverting display mode to MODE_NAVIGATION")
+            val navFrame = NexusParser.buildUnifiedClusterPacket(displayMode = NexusParser.MODE_NAVIGATION)
+            writePacketToCluster(navFrame)
+        } else {
+            handler.removeCallbacks(continuousClusterUpdateRunnable)
+            val clearPacket = NexusParser.clearNavigationPacket()
+            writePacketToCluster(clearPacket)
+            handler.postDelayed({ if (!isNavigating && !isMirroring) writePacketToCluster(clearPacket) }, 300L)
+            handler.postDelayed({ if (!isNavigating && !isMirroring) writePacketToCluster(clearPacket) }, 600L)
+        }
     }
 
     /**
@@ -902,6 +1058,7 @@ class BleService : LifecycleService() {
         val p2 = NexusParser.buildHandshake0110(vin)
         val p3 = NexusParser.buildHandshake0111()
         val p4 = NexusParser.buildHandshake0112(owner)
+        val p5 = NexusParser.buildHandshake0114()
 
         var candidateDelay = 0L
         for (candidateUuid in NexusParser.SYNC_CANDIDATES) {
@@ -924,11 +1081,14 @@ class BleService : LifecycleService() {
                         }
                     }
                     candidateUuid.equals(NexusParser.SERVICE_UUID_SECONDARY, ignoreCase = true) -> {
-                        // Characteristic 20022202: 4 registration handshake packets
+                        // Characteristic 20022202: registration handshake packets
                         queueCharacteristicWrite(targetChar, p1)
                         queueCharacteristicWrite(targetChar, p2)
                         queueCharacteristicWrite(targetChar, p3)
                         queueCharacteristicWrite(targetChar, p4)
+                        findCharacteristic(gatt, NexusParser.SERVICE_UUID_TERTIARY)?.let { tertiaryChar ->
+                            queueCharacteristicWrite(tertiaryChar, p5)
+                        }
                     }
                     else -> {
                         // Candidate probe write
@@ -958,12 +1118,16 @@ class BleService : LifecycleService() {
         val p2 = NexusParser.buildHandshake0110(vin)
         val p3 = NexusParser.buildHandshake0111()
         val p4 = NexusParser.buildHandshake0112(owner)
+        val p5 = NexusParser.buildHandshake0114()
 
-        Log.d(TAG, "Queueing 4 registration handshake packets to ${NexusParser.shortUuid(targetChar.uuid.toString())}")
+        Log.d(TAG, "Queueing registration handshake packets to ${NexusParser.shortUuid(targetChar.uuid.toString())}")
         queueCharacteristicWrite(targetChar, p1)
         queueCharacteristicWrite(targetChar, p2)
         queueCharacteristicWrite(targetChar, p3)
         queueCharacteristicWrite(targetChar, p4)
+        findCharacteristic(gatt, NexusParser.SERVICE_UUID_TERTIARY)?.let { tertiaryChar ->
+            queueCharacteristicWrite(tertiaryChar, p5)
+        }
     }
 
     // ─── BLE Descriptor & Notification Setup ─────────────────────────────────

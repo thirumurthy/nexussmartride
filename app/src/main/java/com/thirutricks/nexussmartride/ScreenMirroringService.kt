@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -44,8 +45,15 @@ class ScreenMirroringService : Service() {
 
         const val CMD_START = "start_mirror"
         const val CMD_STOP = "stop_mirror"
+        const val CMD_SET_ORIENTATION = "set_orientation"
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
+        const val EXTRA_ORIENTATION_MODE = "extra_orientation_mode"
+
+        const val MODE_LANDSCAPE_AUTO = 0  // Standard landscape (800x360 capture, 0 deg)
+        const val MODE_ROTATE_90_CW = 1    // Portrait phone -> 360x800 capture, rotated 90° CW to 800x360
+        const val MODE_ROTATE_90_CCW = 2   // Portrait phone -> 360x800 capture, rotated 270° CCW to 800x360
+        const val MODE_FIT_CENTER = 3      // 800x360 capture with letterbox bars
 
         // Cluster Display target resolution
         const val CLUSTER_WIDTH = 800
@@ -66,6 +74,7 @@ class ScreenMirroringService : Service() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isMirroring = false
+    private var orientationMode = MODE_LANDSCAPE_AUTO
 
     override fun onCreate() {
         super.onCreate()
@@ -77,6 +86,7 @@ class ScreenMirroringService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             CMD_START -> {
+                orientationMode = intent.getIntExtra(EXTRA_ORIENTATION_MODE, MODE_LANDSCAPE_AUTO)
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
                 val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
                 if (resultCode != 0 && resultData != null) {
@@ -85,6 +95,14 @@ class ScreenMirroringService : Service() {
                 } else {
                     Log.e(TAG, "Cannot start mirroring: Missing MediaProjection result data")
                     stopSelf()
+                }
+            }
+            CMD_SET_ORIENTATION -> {
+                val newMode = intent.getIntExtra(EXTRA_ORIENTATION_MODE, MODE_LANDSCAPE_AUTO)
+                Log.i(TAG, "Setting mirror orientation mode to: $newMode")
+                orientationMode = newMode
+                if (isMirroring && mediaProjection != null) {
+                    setupVirtualDisplay()
                 }
             }
             CMD_STOP -> {
@@ -127,29 +145,48 @@ class ScreenMirroringService : Service() {
             }, mainHandler)
         }
 
-        // 4. Setup ImageReader and VirtualDisplay for 800x360
-        imageReader = ImageReader.newInstance(
-            CLUSTER_WIDTH,
-            CLUSTER_HEIGHT,
-            PixelFormat.RGBA_8888,
-            2
-        )
-
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
-            "ScooterClusterDisplay",
-            CLUSTER_WIDTH,
-            CLUSTER_HEIGHT,
-            CLUSTER_DENSITY,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader?.surface,
-            null,
-            mainHandler
-        )
+        // 4. Setup ImageReader and VirtualDisplay
+        setupVirtualDisplay()
 
         // 5. Start frame capture loop at 5 FPS
         startCaptureLoop()
 
         broadcastStatus(true, "Starting hotspot…")
+    }
+
+    private fun setupVirtualDisplay() {
+        val (capW, capH) = when (orientationMode) {
+            MODE_ROTATE_90_CW, MODE_ROTATE_90_CCW -> Pair(CLUSTER_HEIGHT, CLUSTER_WIDTH) // 360, 800
+            else -> Pair(CLUSTER_WIDTH, CLUSTER_HEIGHT) // 800, 360
+        }
+
+        if (imageReader != null && (imageReader?.width != capW || imageReader?.height != capH)) {
+            try {
+                imageReader?.close()
+            } catch (_: Exception) {}
+            imageReader = null
+        }
+
+        if (imageReader == null) {
+            imageReader = ImageReader.newInstance(capW, capH, PixelFormat.RGBA_8888, 2)
+        }
+
+        if (virtualDisplay == null) {
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "ScooterClusterDisplay",
+                capW,
+                capH,
+                CLUSTER_DENSITY,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface,
+                null,
+                mainHandler
+            )
+        } else {
+            virtualDisplay?.resize(capW, capH, CLUSTER_DENSITY)
+            virtualDisplay?.surface = imageReader?.surface
+        }
+        Log.i(TAG, "VirtualDisplay configured: ${capW}x$capH, mode=$orientationMode")
     }
 
     private fun startHotspotAndProvision() {
@@ -176,9 +213,8 @@ class ScreenMirroringService : Service() {
 
                     Log.i(TAG, "Local hotspot started: SSID=$ssid, PWD=$password")
 
-                    // Build and dispatch BLE packet 0x20
-                    val packet = NexusParser.buildHotspotProvisioningPacket(ssid, password)
-                    BleService.instance?.writePacketToClusterDirect(packet)
+                    // Provision Wi-Fi Hotspot credentials and start 1 Hz mirroring stream
+                    BleService.instance?.startMirroringMode(ssid, password)
 
                     broadcastStatus(true, ssid)
                 }
@@ -201,8 +237,7 @@ class ScreenMirroringService : Service() {
         val password = prefs.getString("personal_hotspot_pwd", "12345678") ?: "12345678"
 
         Log.i(TAG, "Provisioning personal hotspot to cluster: SSID=$ssid")
-        val packet = NexusParser.buildHotspotProvisioningPacket(ssid, password)
-        BleService.instance?.writePacketToClusterDirect(packet)
+        BleService.instance?.startMirroringMode(ssid, password)
         broadcastStatus(true, "Personal: $ssid")
     }
 
@@ -219,25 +254,47 @@ class ScreenMirroringService : Service() {
         var image: android.media.Image? = null
         try {
             image = reader.acquireLatestImage() ?: return
+            val capW = reader.width
+            val capH = reader.height
             val planes = image.planes
             val buffer = planes[0].buffer
             val pixelStride = planes[0].pixelStride
             val rowStride = planes[0].rowStride
-            val rowPadding = rowStride - pixelStride * CLUSTER_WIDTH
+            val rowPadding = rowStride - pixelStride * capW
 
             val tempBitmap = Bitmap.createBitmap(
-                CLUSTER_WIDTH + rowPadding / pixelStride,
-                CLUSTER_HEIGHT,
+                capW + rowPadding / pixelStride,
+                capH,
                 Bitmap.Config.ARGB_8888
             )
             tempBitmap.copyPixelsFromBuffer(buffer)
 
-            val finalBitmap = if (rowPadding == 0) {
+            var finalBitmap = if (rowPadding == 0) {
                 tempBitmap
             } else {
-                Bitmap.createBitmap(tempBitmap, 0, 0, CLUSTER_WIDTH, CLUSTER_HEIGHT).also {
+                Bitmap.createBitmap(tempBitmap, 0, 0, capW, capH).also {
                     tempBitmap.recycle()
                 }
+            }
+
+            // If captured in portrait orientation (360x800), rotate to landscape (800x360)
+            if (orientationMode == MODE_ROTATE_90_CW) {
+                val matrix = Matrix().apply { postRotate(90f) }
+                val rotated = Bitmap.createBitmap(finalBitmap, 0, 0, finalBitmap.width, finalBitmap.height, matrix, true)
+                finalBitmap.recycle()
+                finalBitmap = rotated
+            } else if (orientationMode == MODE_ROTATE_90_CCW) {
+                val matrix = Matrix().apply { postRotate(270f) }
+                val rotated = Bitmap.createBitmap(finalBitmap, 0, 0, finalBitmap.width, finalBitmap.height, matrix, true)
+                finalBitmap.recycle()
+                finalBitmap = rotated
+            }
+
+            // Ensure exact 800x360 dimensions for the cluster display
+            if (finalBitmap.width != CLUSTER_WIDTH || finalBitmap.height != CLUSTER_HEIGHT) {
+                val scaled = Bitmap.createScaledBitmap(finalBitmap, CLUSTER_WIDTH, CLUSTER_HEIGHT, true)
+                finalBitmap.recycle()
+                finalBitmap = scaled
             }
 
             // Adaptive compression: step down quality by 5 until <= 50 KB (Ampere Connect rule)
@@ -291,6 +348,9 @@ class ScreenMirroringService : Service() {
             hotspotReservation?.close()
         } catch (_: Exception) {}
         hotspotReservation = null
+
+        // Restore cluster display mode from mirroring back to navigation or idle
+        BleService.instance?.stopMirroringMode()
 
         broadcastStatus(false, null)
     }

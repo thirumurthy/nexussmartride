@@ -36,15 +36,27 @@ class MapNotificationListenerService : NotificationListenerService() {
         const val EXTRA_ROAD_NAME = "road_name"
         const val EXTRA_REMAINING_TEXT = "remaining_text"
 
-        // Direction Opcodes matching Ampere Nexus cluster firmware:
-        const val MANEUVER_RIGHT = 0x01
-        const val MANEUVER_LEFT = 0x02
-        const val MANEUVER_STRAIGHT = 0x03
-        const val MANEUVER_SLIGHT_LEFT = 0x04
-        const val MANEUVER_SLIGHT_RIGHT = 0x05
-        const val MANEUVER_UTURN = 0x06
-        const val MANEUVER_ROUNDABOUT = 0x07
-        const val MANEUVER_CLEAR = 0xFF
+        // Direction Opcodes matching Ampere Nexus cluster firmware (Function 16921):
+        const val MANEUVER_SLIGHT_RIGHT = 0x01
+        const val MANEUVER_SLIGHT_LEFT  = 0x02
+        const val MANEUVER_STRAIGHT     = 0x03
+        const val MANEUVER_LEFT         = 0x04
+        const val MANEUVER_RIGHT        = 0x05
+        const val MANEUVER_UTURN_LEFT   = 0x06
+        const val MANEUVER_UTURN_RIGHT  = 0x07 // Also Roundabout
+        const val MANEUVER_UTURN        = MANEUVER_UTURN_LEFT
+        const val MANEUVER_ROUNDABOUT   = MANEUVER_UTURN_RIGHT
+        const val MANEUVER_CLEAR        = 0xFF
+
+        val SUPPORTED_NAV_PACKAGES = setOf(
+            GOOGLE_MAPS_PACKAGE,
+            "com.google.android.apps.mapslite",
+            "com.mmi.maps",
+            "com.mappls.mmi",
+            "com.waze",
+            "net.osmand",
+            "net.osmand.plus"
+        )
 
         @Volatile
         var instance: MapNotificationListenerService? = null
@@ -60,17 +72,36 @@ class MapNotificationListenerService : NotificationListenerService() {
         @Volatile
         var cachedLastIsPlaying: Boolean = false
 
+        @Volatile
+        var cachedLastManeuver: Int = MANEUVER_CLEAR
+        @Volatile
+        var cachedLastTurnDistMeters: Int = 0
+        @Volatile
+        var cachedLastTotalDistMeters: Int = 0
+        @Volatile
+        var cachedLastRoadName: String = ""
+        @Volatile
+        var cachedLastNavEta: String = ""
+
         /**
          * Triggers immediate synchronization of currently playing song metadata.
          */
         fun triggerActiveMediaSync() {
             instance?.syncActiveMediaNow()
         }
+
+        /**
+         * Triggers immediate synchronization of active turn-by-turn navigation cues.
+         */
+        fun triggerActiveNavigationSync(): Boolean {
+            return instance?.syncActiveNavigationNow() ?: false
+        }
     }
 
     private var isNavigating = false
     private var lastRoadName = ""
     private var lastDistanceMeters = -1
+    private var lastTotalDistMeters = -1
     private var lastManeuver = MANEUVER_CLEAR
 
     private var mediaSessionManager: MediaSessionManager? = null
@@ -92,9 +123,10 @@ class MapNotificationListenerService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         instance = this
-        Log.i(TAG, "NotificationListener connected! Setting up MediaSessionManager...")
+        Log.i(TAG, "NotificationListener connected! Setting up MediaSessionManager and syncing active navigation...")
         setupMediaSessions()
         syncActiveMediaNow()
+        syncActiveNavigationNow()
     }
 
     override fun onDestroy() {
@@ -184,23 +216,12 @@ class MapNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null) return
 
-        if (sbn.packageName != GOOGLE_MAPS_PACKAGE) {
-            checkMediaNotification(sbn)
-            return
+        if (SUPPORTED_NAV_PACKAGES.contains(sbn.packageName)) {
+            val handled = processNavigationNotification(sbn)
+            if (handled) return
         }
 
-        val notification = sbn.notification ?: return
-        val extras = notification.extras ?: return
-
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString() ?: ""
-
-        // Filter out non-navigation notifications from Google Maps (e.g. sharing location, reviews)
-        if (!isNavigationNotification(title, text, subText, notification)) return
-
-        isNavigating = true
-        parseAndDispatchNavigation(title, text, subText)
+        checkMediaNotification(sbn)
     }
 
     private fun checkMediaNotification(sbn: StatusBarNotification) {
@@ -231,85 +252,199 @@ class MapNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        if (sbn == null || sbn.packageName != GOOGLE_MAPS_PACKAGE) return
+        if (sbn == null || !SUPPORTED_NAV_PACKAGES.contains(sbn.packageName)) return
 
         if (isNavigating) {
-            isNavigating = false
-            Log.d(TAG, "Google Maps navigation ended. Clearing cluster navigation.")
-            clearClusterNavigation()
+            // Check if another active navigation notification exists before clearing
+            if (!syncActiveNavigationNow()) {
+                isNavigating = false
+                Log.d(TAG, "Navigation notification removed and no other active nav found. Clearing cluster navigation.")
+                clearClusterNavigation()
+            }
         }
+    }
+
+    /**
+     * Actively queries the system for ongoing navigation notifications from Google Maps, Mappls, etc.
+     * Dispatches current turn and distance immediately to the scooter cluster display over BLE.
+     * Returns true if active navigation was found and dispatched.
+     */
+    fun syncActiveNavigationNow(): Boolean {
+        try {
+            val activeNotifs = activeNotifications
+            if (activeNotifs == null || activeNotifs.isEmpty()) {
+                Log.d(TAG, "syncActiveNavigationNow: activeNotifications is empty")
+                return false
+            }
+            for (sbn in activeNotifs) {
+                val pkg = sbn.packageName ?: continue
+                if (SUPPORTED_NAV_PACKAGES.contains(pkg)) {
+                    if (processNavigationNotification(sbn)) {
+                        Log.i(TAG, "syncActiveNavigationNow: successfully synced ongoing navigation from $pkg")
+                        return true
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "syncActiveNavigationNow error: ${e.message}", e)
+        }
+        return false
+    }
+
+    private fun processNavigationNotification(sbn: StatusBarNotification): Boolean {
+        val notification = sbn.notification ?: return false
+        val extras = notification.extras ?: android.os.Bundle()
+
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim() ?: ""
+        val titleBig = extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()?.trim() ?: ""
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim() ?: ""
+        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim() ?: ""
+        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim() ?: ""
+        val infoText = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()?.trim() ?: ""
+        val summaryText = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()?.trim() ?: ""
+        val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.joinToString(" ") ?: ""
+        val ticker = notification.tickerText?.toString()?.trim() ?: ""
+
+        val effectiveTitle = title.ifBlank { titleBig }
+        val effectiveText = text.ifBlank { bigText.ifBlank { textLines } }
+        val effectiveSubText = subText.ifBlank { infoText.ifBlank { summaryText } }
+
+        if (!isNavigationNotification(effectiveTitle, effectiveText, effectiveSubText, bigText, notification, sbn.packageName)) {
+            return false
+        }
+
+        isNavigating = true
+        parseAndDispatchNavigation(effectiveTitle, effectiveText, effectiveSubText, bigText, ticker)
+        return true
     }
 
     private fun isNavigationNotification(
         title: String,
         text: String,
         subText: String,
-        notification: Notification
+        bigText: String,
+        notification: Notification,
+        pkg: String
     ): Boolean {
-        // Navigation notifications are ongoing foreground services with distance/direction indicators
-        if ((notification.flags and Notification.FLAG_ONGOING_EVENT) == 0) return false
+        val combined = "$title $text $subText $bigText".lowercase()
 
-        val combined = "$title $text $subText".lowercase()
-        return combined.contains("min") ||
+        // Reject explicit location sharing notifications
+        if (combined.contains("sharing your location") || combined.contains("sharing your real-time location")) {
+            return false
+        }
+
+        // Standard Android category for navigation
+        if (notification.category == Notification.CATEGORY_NAVIGATION ||
+            notification.category == Notification.CATEGORY_TRANSPORT) {
+            return true
+        }
+
+        // Check if notification has navigation action buttons (e.g. Exit navigation)
+        val hasNavAction = notification.actions?.any { action ->
+            val at = action.title?.toString()?.lowercase() ?: ""
+            at.contains("exit") || at.contains("stop") || at.contains("mute") || at.contains("resume")
+        } ?: false
+        if (hasNavAction) return true
+
+        // Check ongoing/foreground status
+        val isOngoing = (notification.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE or Notification.FLAG_NO_CLEAR)) != 0
+
+        // Keyword cues common in Google Maps navigation
+        val hasNavKeywords = combined.contains("min") ||
                combined.contains("km") ||
                combined.contains(" m") ||
+               combined.contains("mi") ||
+               combined.contains("ft") ||
                combined.contains("turn") ||
                combined.contains("exit") ||
                combined.contains("head") ||
-               combined.contains("continue")
+               combined.contains("continue") ||
+               combined.contains("onto") ||
+               combined.contains("toward") ||
+               combined.contains("roundabout") ||
+               combined.contains("u-turn") ||
+               combined.contains("uturn") ||
+               combined.contains("keep") ||
+               combined.contains("destination")
+
+        return isOngoing && hasNavKeywords
     }
 
-    private fun parseAndDispatchNavigation(title: String, text: String, subText: String) {
-        val maneuver = extractManeuver(title, text)
-        val turnDistMeters = extractDistanceMeters(title).takeIf { it > 0 }
-            ?: extractDistanceMeters(text)
-
-        val roadName = extractRoadName(title, text)
-        val totalDistMeters = extractDistanceMeters(subText)
-
-        // Only send if something meaningful changed to avoid spamming BLE
-        if (maneuver != lastManeuver || turnDistMeters != lastDistanceMeters || roadName != lastRoadName) {
-            lastManeuver = maneuver
-            lastDistanceMeters = turnDistMeters
-            lastRoadName = roadName
-
-            Log.d(TAG, "Nav Update -> Maneuver: 0x%02X, TurnDist: %dm, Road: %s, TotalDist: %dm".format(
-                maneuver, turnDistMeters, roadName, totalDistMeters
-            ))
-
-            // Dispatch to scooter over BLE
-            BleService.instance?.sendNavigationToCluster(
-                maneuverDirection = maneuver,
-                turnDistanceMeters = turnDistMeters,
-                totalDistanceMeters = totalDistMeters,
-                roadName = roadName,
-                isGpsFixed = true
-            )
-
-            // Broadcast to MainActivity for live dashboard status display
-            val intent = Intent(ACTION_NAV_UPDATE).apply {
-                putExtra(EXTRA_IS_NAVIGATING, true)
-                putExtra(EXTRA_MANEUVER, maneuver)
-                putExtra(EXTRA_DISTANCE_TEXT, if (turnDistMeters > 0) formatDistanceText(turnDistMeters) else "")
-                putExtra(EXTRA_ROAD_NAME, roadName)
-                putExtra(EXTRA_REMAINING_TEXT, subText)
-            }
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    private fun parseAndDispatchNavigation(
+        title: String,
+        text: String,
+        subText: String,
+        bigText: String,
+        ticker: String
+    ) {
+        val maneuver = extractManeuver(title, text, bigText, ticker)
+        
+        var turnDistMeters = extractDistanceMeters(title)
+        if (turnDistMeters <= 0) {
+            turnDistMeters = extractDistanceMeters(text)
         }
+        if (turnDistMeters <= 0) {
+            turnDistMeters = extractDistanceMeters(bigText)
+        }
+
+        val roadName = extractRoadName(title, text, bigText)
+
+        var totalDistMeters = extractDistanceMeters(subText)
+        if (totalDistMeters <= 0) {
+            totalDistMeters = extractTotalDistance(subText, text, bigText)
+        }
+        if (totalDistMeters < turnDistMeters || totalDistMeters <= 0) {
+            totalDistMeters = maxOf(turnDistMeters + 1000, 5000)
+        }
+
+        lastManeuver = maneuver
+        lastDistanceMeters = turnDistMeters
+        lastRoadName = roadName
+        lastTotalDistMeters = totalDistMeters
+
+        cachedLastManeuver = maneuver
+        cachedLastTurnDistMeters = turnDistMeters
+        cachedLastTotalDistMeters = totalDistMeters
+        cachedLastRoadName = roadName
+        cachedLastNavEta = subText
+
+        Log.i(TAG, "Nav Update -> Maneuver: 0x%02X, TurnDist: %dm, Road: '%s', TotalDist: %dm".format(
+            maneuver, turnDistMeters, roadName, totalDistMeters
+        ))
+
+        // Update live navigation state in BleService (drives continuous 1000ms cluster update loop)
+        BleService.instance?.updateNavigationToCluster(
+            maneuverDirection = maneuver,
+            turnDistanceMeters = turnDistMeters,
+            totalDistanceMeters = totalDistMeters,
+            roadName = roadName
+        )
+
+        // Broadcast to MainActivity for live dashboard status display
+        val intent = Intent(ACTION_NAV_UPDATE).apply {
+            putExtra(EXTRA_IS_NAVIGATING, true)
+            putExtra(EXTRA_MANEUVER, maneuver)
+            putExtra(EXTRA_DISTANCE_TEXT, if (turnDistMeters > 0) formatDistanceText(turnDistMeters) else "0 m")
+            putExtra(EXTRA_ROAD_NAME, roadName)
+            putExtra(EXTRA_REMAINING_TEXT, subText.ifBlank { formatDistanceText(totalDistMeters) })
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     private fun clearClusterNavigation() {
         lastManeuver = MANEUVER_CLEAR
         lastDistanceMeters = 0
         lastRoadName = ""
+        lastTotalDistMeters = 0
 
-        BleService.instance?.sendNavigationToCluster(
-            maneuverDirection = MANEUVER_CLEAR,
-            turnDistanceMeters = 0,
-            totalDistanceMeters = 0,
-            roadName = "",
-            isGpsFixed = false
-        )
+        cachedLastManeuver = MANEUVER_CLEAR
+        cachedLastTurnDistMeters = 0
+        cachedLastTotalDistMeters = 0
+        cachedLastRoadName = ""
+        cachedLastNavEta = ""
+
+        // Stops 1 Hz loop and dispatches Idle/Trip Completed packet 3 times to cluster
+        BleService.instance?.clearNavigationFromCluster()
 
         val intent = Intent(ACTION_NAV_UPDATE).apply {
             putExtra(EXTRA_IS_NAVIGATING, false)
@@ -317,49 +452,85 @@ class MapNotificationListenerService : NotificationListenerService() {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun extractManeuver(title: String, text: String): Int {
-        val combined = "$title $text".lowercase()
+    private fun extractManeuver(vararg texts: String): Int {
+        val combined = texts.filter { it.isNotBlank() }.joinToString(" ").lowercase()
         return when {
-            combined.contains("u-turn") || combined.contains("uturn") -> MANEUVER_UTURN
-            combined.contains("roundabout") || combined.contains("rotary") -> MANEUVER_ROUNDABOUT
-            combined.contains("slight right") || combined.contains("bear right") || combined.contains("keep right") -> MANEUVER_SLIGHT_RIGHT
-            combined.contains("slight left") || combined.contains("bear left") || combined.contains("keep left") -> MANEUVER_SLIGHT_LEFT
-            combined.contains("turn right") || combined.contains("take exit right") || combined.contains("right") -> MANEUVER_RIGHT
-            combined.contains("turn left") || combined.contains("take exit left") || combined.contains("left") -> MANEUVER_LEFT
-            combined.contains("straight") || combined.contains("continue") || combined.contains("head") -> MANEUVER_STRAIGHT
+            combined.contains("u-turn left") || combined.contains("uturn left") -> MANEUVER_UTURN_LEFT
+            combined.contains("u-turn right") || combined.contains("uturn right") -> MANEUVER_UTURN_RIGHT
+            combined.contains("u-turn") || combined.contains("uturn") -> MANEUVER_UTURN_LEFT
+            combined.contains("roundabout") || combined.contains("rotary") || combined.contains("traffic circle") -> MANEUVER_ROUNDABOUT
+            combined.contains("slight right") || combined.contains("bear right") || combined.contains("fork right") -> MANEUVER_SLIGHT_RIGHT
+            combined.contains("slight left") || combined.contains("bear left") || combined.contains("fork left") -> MANEUVER_SLIGHT_LEFT
+            combined.contains("sharp right") -> MANEUVER_RIGHT
+            combined.contains("sharp left") -> MANEUVER_LEFT
+            Regex("(?i)\\bkeep right\\b").containsMatchIn(combined) -> MANEUVER_SLIGHT_RIGHT
+            Regex("(?i)\\bkeep left\\b").containsMatchIn(combined) -> MANEUVER_SLIGHT_LEFT
+            Regex("(?i)\\b(turn right|take exit right|exit right|right)\\b").containsMatchIn(combined) -> MANEUVER_RIGHT
+            Regex("(?i)\\b(turn left|take exit left|exit left|left)\\b").containsMatchIn(combined) -> MANEUVER_LEFT
+            combined.contains("straight") || combined.contains("continue") || combined.contains("head") || combined.contains("stay on") || combined.contains("proceed") -> MANEUVER_STRAIGHT
             else -> MANEUVER_STRAIGHT
         }
     }
 
     private fun extractDistanceMeters(raw: String): Int {
-        val pattern = Pattern.compile("(?i)(\\d+(?:\\.\\d+)?)\\s*(m|meter|meters|km|kilometer|kilometers|ft|feet|mi|mile|miles)")
-        val matcher = pattern.matcher(raw)
+        if (raw.isBlank()) return 0
+        var clean = raw.replace(Regex("(\\d+),(\\d{3})"), "$1$2").replace(',', '.')
+        val pattern = Pattern.compile("(?i)(\\d+(?:\\.\\d+)?)\\s*(km|kilometers?|meters?|miles?|mi\\b|feet|ft|m\\b(?!in))")
+        val matcher = pattern.matcher(clean)
         if (matcher.find()) {
             val num = matcher.group(1)?.toDoubleOrNull() ?: return 0
             val unit = matcher.group(2)?.lowercase() ?: ""
             return when {
                 unit.startsWith("km") -> (num * 1000).toInt()
-                unit.startsWith("m") -> num.toInt()
                 unit.startsWith("mi") -> (num * 1609.34).toInt()
                 unit.startsWith("ft") -> (num * 0.3048).toInt()
+                unit.startsWith("m") -> num.toInt()
                 else -> num.toInt()
             }
         }
         return 0
     }
 
-    private fun extractRoadName(title: String, text: String): String {
-        // Strip out instructions to keep clean street name
-        var clean = text
-        if (clean.isBlank() || clean.contains("min") || clean.contains("km")) {
-            clean = title
+    private fun extractTotalDistance(vararg texts: String): Int {
+        for (raw in texts) {
+            if (raw.isBlank()) continue
+            val clean = raw.replace(Regex("(\\d+),(\\d{3})"), "$1$2").replace(',', '.')
+            val pattern = Pattern.compile("(?i)(\\d+(?:\\.\\d+)?)\\s*(km|kilometers?|miles?|mi\\b)")
+            val matcher = pattern.matcher(clean)
+            var lastDist = 0
+            while (matcher.find()) {
+                val num = matcher.group(1)?.toDoubleOrNull() ?: continue
+                val unit = matcher.group(2)?.lowercase() ?: ""
+                lastDist = if (unit.startsWith("km")) (num * 1000).toInt() else (num * 1609.34).toInt()
+            }
+            if (lastDist > 0) return lastDist
         }
-        clean = clean.replace(Regex("(?i)^(in\\s+\\d+(?:\\.\\d+)?\\s*(?:m|km|ft|mi)\\s*,?\\s*)"), "")
-        clean = clean.replace(Regex("(?i)^(turn\\s+(?:right|left|slight right|slight left)\\s+(?:onto|on)\\s+)"), "")
-        clean = clean.replace(Regex("(?i)^(head\\s+(?:north|south|east|west)\\s+(?:on|onto)?\\s*)"), "")
-        clean = clean.replace(Regex("(?i)^(continue\\s+(?:onto|on)?\\s*)"), "")
-        clean = clean.trim()
-        return clean.take(24)
+        return 0
+    }
+
+    private fun extractRoadName(title: String, text: String, bigText: String): String {
+        val candidates = listOf(bigText, text, title)
+        val instrPatterns = listOf(
+            "turn left", "turn right", "slight right", "slight left",
+            "u-turn", "head north", "head south", "head east", "head west",
+            "continue straight", "continue", "in", "towards", "onto"
+        )
+        for (candidate in candidates) {
+            if (candidate.isBlank()) continue
+            var s = candidate
+            s = s.replace(Regex("(?i)\\b(?:in\\s+)?\\d+(?:\\.\\d+)?\\s*(?:km|m|mi|ft)\\b"), "")
+            s = s.replace(Regex("[·•\\-\\|]"), " ")
+            s = s.replace(
+                Regex("(?i)^\\s*(?:in\\s+)?(?:turn\\s+(?:left|right|slight left|slight right)|sharp\\s+(?:left|right)|head\\s+(?:north|south|east|west)|continue|keep\\s+(?:left|right)|take\\s+(?:exit|the))(?:\\s+(?:onto|on|towards|to))?\\s*"),
+                ""
+            )
+            s = s.trim()
+            if (s.length > 1 && instrPatterns.none { s.equals(it, ignoreCase = true) }) {
+                return s.take(24)
+            }
+        }
+        val fallback = text.ifBlank { title.ifBlank { bigText } }
+        return fallback.take(24)
     }
 
     private fun formatDistanceText(meters: Int): String {
