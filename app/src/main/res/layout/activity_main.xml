@@ -204,11 +204,11 @@
                                     android:layout_alignParentStart="true"
                                     android:background="@drawable/bg_pill_emerald"
                                     android:fontFamily="@font/jetbrains_mono"
-                                    android:paddingHorizontal="8dp"
-                                    android:paddingVertical="3dp"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
                                     android:text="Ride Smart • Live Green"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="9sp"
+                                    android:textSize="11sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -218,11 +218,11 @@
                                     android:layout_alignParentEnd="true"
                                     android:background="@drawable/bg_pill_cyan"
                                     android:fontFamily="@font/jetbrains_mono"
-                                    android:paddingHorizontal="8dp"
-                                    android:paddingVertical="3dp"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
                                     android:text="BLE 5.2 Live"
                                     android:textColor="@color/primary_cyan"
-                                    android:textSize="9sp"
+                                    android:textSize="11sp"
                                     android:textStyle="bold" />
                             </RelativeLayout>
 
@@ -231,7 +231,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center_horizontal|top"
-                                android:layout_marginTop="32dp"
+                                android:layout_marginTop="28dp"
                                 android:gravity="center"
                                 android:orientation="vertical">
 
@@ -244,10 +244,10 @@
                                     android:shadowColor="#8000E5FF"
                                     android:shadowDx="0"
                                     android:shadowDy="0"
-                                    android:shadowRadius="12"
+                                    android:shadowRadius="14"
                                     android:text="0"
                                     android:textColor="@color/text_white"
-                                    android:textSize="72sp"
+                                    android:textSize="84sp"
                                     android:textStyle="bold" />
 
                                 <LinearLayout
@@ -264,7 +264,7 @@
                                         android:letterSpacing="0.2"
                                         android:text="KM/H"
                                         android:textColor="@color/primary_cyan"
-                                        android:textSize="13sp"
+                                        android:textSize="14sp"
                                         android:textStyle="bold" />
 
                                     <TextView
@@ -274,11 +274,11 @@
                                         android:layout_marginStart="8dp"
                                         android:background="@drawable/bg_pill_cyan"
                                         android:fontFamily="@font/jetbrains_mono"
-                                        android:paddingHorizontal="6dp"
-                                        android:paddingVertical="2dp"
+                                        android:paddingHorizontal="8dp"
+                                        android:paddingVertical="3dp"
                                         android:text="ECO"
                                         android:textColor="@color/primary_cyan"
-                                        android:textSize="9sp"
+                                        android:textSize="11sp"
                                         android:textStyle="bold" />
                                 </LinearLayout>
                             </LinearLayout>
@@ -290,10 +290,10 @@
                                 android:layout_gravity="bottom"
                                 android:layout_marginHorizontal="10dp"
                                 android:layout_marginBottom="10dp"
-                                app:cardBackgroundColor="#E610141D"
-                                app:cardCornerRadius="16dp"
-                                app:cardElevation="2dp"
-                                app:strokeColor="@color/glass_border"
+                                app:cardBackgroundColor="@color/glass_card_bg"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="3dp"
+                                app:strokeColor="@color/glass_card_stroke"
                                 app:strokeWidth="1dp">
 
                                 <LinearLayout
@@ -318,7 +318,7 @@
                                                 android:letterSpacing="0.1"
                                                 android:text="DISTANCE TODAY SO FAR"
                                                 android:textColor="@color/primary_cyan"
-                                                android:textSize="9sp"
+                                                android:textSize="11sp"
                                                 android:textStyle="bold" />
 
                                             <LinearLayout
@@ -335,18 +335,18 @@
                                                     android:fontFamily="@font/space_grotesk"
                                                     android:text="18.6"
                                                     android:textColor="@color/text_white"
-                                                    android:textSize="26sp"
+                                                    android:textSize="30sp"
                                                     android:textStyle="bold" />
 
                                                 <TextView
                                                     android:layout_width="wrap_content"
                                                     android:layout_height="wrap_content"
                                                     android:layout_marginStart="4dp"
-                                                    android:layout_marginBottom="2dp"
+                                                    android:layout_marginBottom="3dp"
                                                     android:fontFamily="@font/space_grotesk"
                                                     android:text="km"
                                                     android:textColor="@color/primary_cyan"
-                                                    android:textSize="13sp"
+                                                    android:textSize="14sp"
                                                     android:textStyle="bold" />
                                             </LinearLayout>
                                         </LinearLayout>
@@ -364,11 +364,11 @@
                                                 android:layout_height="wrap_content"
                                                 android:background="@drawable/bg_pill_emerald"
                                                 android:fontFamily="@font/jetbrains_mono"
-                                                android:paddingHorizontal="7dp"
-                                                android:paddingVertical="2dp"
+                                                android:paddingHorizontal="8dp"
+                                                android:paddingVertical="3dp"
                                                 android:text="+22% vs yesterday"
                                                 android:textColor="@color/status_emerald"
-                                                android:textSize="9sp"
+                                                android:textSize="11sp"
                                                 android:textStyle="bold" />
 
                                             <TextView
@@ -379,7 +379,7 @@
                                                 android:fontFamily="@font/jetbrains_mono"
                                                 android:text="Goal: 25 km (74% done)"
                                                 android:textColor="@color/text_secondary"
-                                                android:textSize="9sp" />
+                                                android:textSize="11sp" />
                                         </LinearLayout>
                                     </RelativeLayout>
 
@@ -387,7 +387,7 @@
                                     <LinearLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
+                                        android:layout_marginTop="10dp"
                                         android:baselineAligned="false"
                                         android:orientation="horizontal"
                                         android:weightSum="3">
@@ -405,7 +405,7 @@
                                                 android:fontFamily="@font/inter"
                                                 android:text="AVG SPEED"
                                                 android:textColor="@color/text_secondary"
-                                                android:textSize="9sp" />
+                                                android:textSize="11sp" />
 
                                             <TextView
                                                 android:id="@+id/tvAvgSpeed"
@@ -415,7 +415,7 @@
                                                 android:fontFamily="@font/space_grotesk"
                                                 android:text="24 km/h"
                                                 android:textColor="@color/text_primary"
-                                                android:textSize="12sp"
+                                                android:textSize="14sp"
                                                 android:textStyle="bold" />
                                         </LinearLayout>
 
@@ -432,7 +432,7 @@
                                                 android:fontFamily="@font/inter"
                                                 android:text="RIDE TIME"
                                                 android:textColor="@color/text_secondary"
-                                                android:textSize="9sp" />
+                                                android:textSize="11sp" />
 
                                             <TextView
                                                 android:id="@+id/tvRideTime"
@@ -442,7 +442,7 @@
                                                 android:fontFamily="@font/space_grotesk"
                                                 android:text="38 mins"
                                                 android:textColor="@color/text_primary"
-                                                android:textSize="12sp"
+                                                android:textSize="14sp"
                                                 android:textStyle="bold" />
                                         </LinearLayout>
 
@@ -459,7 +459,7 @@
                                                 android:fontFamily="@font/inter"
                                                 android:text="BATTERY USED"
                                                 android:textColor="@color/text_secondary"
-                                                android:textSize="9sp" />
+                                                android:textSize="11sp" />
 
                                             <TextView
                                                 android:id="@+id/tvBatteryUsed"
@@ -469,7 +469,7 @@
                                                 android:fontFamily="@font/space_grotesk"
                                                 android:text="9.6%"
                                                 android:textColor="@color/status_emerald"
-                                                android:textSize="12sp"
+                                                android:textSize="14sp"
                                                 android:textStyle="bold" />
                                         </LinearLayout>
                                     </LinearLayout>
@@ -486,33 +486,37 @@
                             android:padding="10dp"
                             android:weightSum="2">
 
-                            <!-- Music Sync Tile -->
+                            <!-- Music Sync Tile (Direct Tap to YouTube App) -->
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardMusicSync"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="5dp"
                                 android:layout_weight="1"
-                                app:cardBackgroundColor="@color/surface_container"
-                                app:cardCornerRadius="16dp"
-                                app:cardElevation="0dp"
-                                app:strokeColor="@color/glass_border_subtle"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                app:cardBackgroundColor="@color/glass_card_bg"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="2dp"
+                                app:strokeColor="@color/glass_card_stroke"
                                 app:strokeWidth="1dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:orientation="vertical"
-                                    android:padding="10dp">
+                                    android:padding="12dp">
 
                                     <RelativeLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginBottom="4dp">
+                                        android:layout_marginBottom="6dp">
 
                                         <ImageView
                                             android:id="@+id/ivMusicIcon"
-                                            android:layout_width="20dp"
-                                            android:layout_height="20dp"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
                                             android:contentDescription="YouTube"
                                             android:src="@drawable/ic_youtube" />
 
@@ -525,12 +529,12 @@
                                             android:fontFamily="@font/jetbrains_mono"
                                             android:text="YOUTUBE"
                                             android:textColor="@color/status_red"
-                                            android:textSize="9sp"
+                                            android:textSize="11sp"
                                             android:textStyle="bold" />
 
                                         <View
-                                            android:layout_width="6dp"
-                                            android:layout_height="6dp"
+                                            android:layout_width="8dp"
+                                            android:layout_height="8dp"
                                             android:layout_alignParentEnd="true"
                                             android:layout_centerVertical="true"
                                             android:background="@drawable/bg_pill_emerald" />
@@ -539,80 +543,67 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:fontFamily="@font/inter"
+                                        android:fontFamily="@font/space_grotesk"
                                         android:text="Music Sync"
-                                        android:textColor="@color/text_primary"
-                                        android:textSize="12sp"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="15sp"
                                         android:textStyle="bold" />
 
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
                                         android:fontFamily="@font/inter"
-                                        android:text="Stream beats to TFT"
+                                        android:text="Stream beats • Tap for YouTube"
                                         android:textColor="@color/text_secondary"
-                                        android:textSize="9sp" />
+                                        android:textSize="11sp" />
 
-                                    <LinearLayout
+                                    <Button
+                                        android:id="@+id/btnMusicPlay"
                                         android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
-                                        android:gravity="center_vertical"
-                                        android:orientation="horizontal">
-
-                                        <Button
-                                            android:id="@+id/btnMusicPlay"
-                                            android:layout_width="0dp"
-                                            android:layout_height="32dp"
-                                            android:layout_weight="1"
-                                            android:background="@drawable/bg_pill_cyan"
-                                            android:fontFamily="@font/jetbrains_mono"
-                                            android:paddingHorizontal="4dp"
-                                            android:text="Play Audio"
-                                            android:textColor="@color/primary_cyan"
-                                            android:textSize="10sp"
-                                            android:textStyle="bold" />
-
-                                        <ImageButton
-                                            android:id="@+id/btnMusicSelectApp"
-                                            android:layout_width="32dp"
-                                            android:layout_height="32dp"
-                                            android:layout_marginStart="6dp"
-                                            android:background="@drawable/bg_card_high"
-                                            android:contentDescription="Select Player"
-                                            android:padding="6dp"
-                                            android:src="@drawable/ic_more_vert" />
-                                    </LinearLayout>
+                                        android:layout_height="36dp"
+                                        android:layout_marginTop="10dp"
+                                        android:background="@drawable/bg_pill_cyan"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:paddingHorizontal="8dp"
+                                        android:text="▶ Open YouTube"
+                                        android:textColor="@color/primary_cyan"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
 
-                            <!-- Live GPS Tile -->
+                            <!-- Live GPS Tile (Direct Tap to Google Maps App) -->
                             <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardMapsLive"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="5dp"
                                 android:layout_weight="1"
-                                app:cardBackgroundColor="@color/surface_container"
-                                app:cardCornerRadius="16dp"
-                                app:cardElevation="0dp"
-                                app:strokeColor="@color/glass_border_subtle"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="?attr/selectableItemBackground"
+                                app:cardBackgroundColor="@color/glass_card_bg"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="2dp"
+                                app:strokeColor="@color/glass_card_stroke"
                                 app:strokeWidth="1dp">
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:orientation="vertical"
-                                    android:padding="10dp">
+                                    android:padding="12dp">
 
                                     <RelativeLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginBottom="4dp">
+                                        android:layout_marginBottom="6dp">
 
                                         <ImageView
                                             android:id="@+id/ivMapsIcon"
-                                            android:layout_width="20dp"
-                                            android:layout_height="20dp"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
                                             android:contentDescription="Google Maps"
                                             android:src="@drawable/ic_maps" />
 
@@ -625,7 +616,7 @@
                                             android:fontFamily="@font/jetbrains_mono"
                                             android:text="MAPS LIVE"
                                             android:textColor="@color/status_emerald"
-                                            android:textSize="9sp"
+                                            android:textSize="11sp"
                                             android:textStyle="bold" />
 
                                         <TextView
@@ -636,55 +627,58 @@
                                             android:fontFamily="@font/jetbrains_mono"
                                             android:text="GPS OK"
                                             android:textColor="@color/primary_cyan"
-                                            android:textSize="8sp" />
+                                            android:textSize="10sp"
+                                            android:textStyle="bold" />
                                     </RelativeLayout>
 
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:fontFamily="@font/inter"
+                                        android:fontFamily="@font/space_grotesk"
                                         android:text="Share Location"
-                                        android:textColor="@color/text_primary"
-                                        android:textSize="12sp"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="15sp"
                                         android:textStyle="bold" />
 
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
+                                        android:layout_marginTop="2dp"
                                         android:fontFamily="@font/inter"
-                                        android:text="Google Maps live GPS"
+                                        android:text="Turn-by-turn • Tap for Maps"
                                         android:textColor="@color/text_secondary"
-                                        android:textSize="9sp" />
+                                        android:textSize="11sp" />
 
                                     <LinearLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
+                                        android:layout_marginTop="10dp"
                                         android:gravity="center_vertical"
                                         android:orientation="horizontal">
 
                                         <Button
                                             android:id="@+id/btnMapsOpen"
                                             android:layout_width="0dp"
-                                            android:layout_height="32dp"
+                                            android:layout_height="36dp"
                                             android:layout_weight="1"
                                             android:background="@drawable/bg_pill_emerald"
                                             android:fontFamily="@font/jetbrains_mono"
                                             android:paddingHorizontal="4dp"
                                             android:text="Open Maps"
                                             android:textColor="@color/status_emerald"
-                                            android:textSize="10sp"
+                                            android:textSize="11sp"
                                             android:textStyle="bold" />
 
                                         <ImageButton
                                             android:id="@+id/btnMapsShare"
-                                            android:layout_width="32dp"
-                                            android:layout_height="32dp"
+                                            android:layout_width="36dp"
+                                            android:layout_height="36dp"
                                             android:layout_marginStart="6dp"
                                             android:background="@drawable/bg_card_high"
                                             android:contentDescription="Share Location"
-                                            android:padding="6dp"
-                                            android:src="@drawable/ic_gps" />
+                                            android:padding="8dp"
+                                            android:src="@drawable/ic_gps"
+                                            app:tint="@color/primary_cyan" />
                                     </LinearLayout>
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
@@ -697,27 +691,43 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="14dp"
-                    app:cardBackgroundColor="@color/surface_container_low"
+                    app:cardBackgroundColor="@color/glass_card_bg"
                     app:cardCornerRadius="20dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/glass_border"
+                    app:cardElevation="3dp"
+                    app:strokeColor="@color/glass_card_stroke"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
+                        <!-- Header Row -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
+                            <FrameLayout
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="@drawable/bg_pill_cyan">
+
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:layout_gravity="center"
+                                    android:contentDescription="Weekly Cadence"
+                                    android:src="@drawable/ic_bar_chart"
+                                    app:tint="@color/primary_cyan" />
+                            </FrameLayout>
+
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
                                 android:layout_weight="1"
                                 android:orientation="vertical">
 
@@ -727,22 +737,22 @@
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="Weekly Mileage"
                                     android:textColor="@color/text_white"
-                                    android:textSize="14sp"
+                                    android:textSize="16sp"
                                     android:textStyle="bold" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:fontFamily="@font/inter"
+                                    android:fontFamily="@font/jetbrains_mono"
                                     android:text="Cadence &amp; Trends"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
 
                             <!-- Cadence Toggle Buttons -->
                             <LinearLayout
                                 android:layout_width="wrap_content"
-                                android:layout_height="28dp"
+                                android:layout_height="32dp"
                                 android:background="@drawable/bg_segmented_track"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
@@ -754,10 +764,10 @@
                                     android:layout_height="match_parent"
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:gravity="center"
-                                    android:paddingHorizontal="8dp"
+                                    android:paddingHorizontal="10dp"
                                     android:text="3D"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
+                                    android:textSize="11sp" />
 
                                 <TextView
                                     android:id="@+id/btnCadence7D"
@@ -766,10 +776,10 @@
                                     android:background="@drawable/bg_tab_pill_active"
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:gravity="center"
-                                    android:paddingHorizontal="8dp"
+                                    android:paddingHorizontal="10dp"
                                     android:text="7D"
                                     android:textColor="@color/primary_cyan"
-                                    android:textSize="10sp"
+                                    android:textSize="11sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -778,10 +788,10 @@
                                     android:layout_height="match_parent"
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:gravity="center"
-                                    android:paddingHorizontal="8dp"
+                                    android:paddingHorizontal="10dp"
                                     android:text="30D"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
+                                    android:textSize="11sp" />
 
                                 <TextView
                                     android:id="@+id/btnCadence1Y"
@@ -789,24 +799,25 @@
                                     android:layout_height="match_parent"
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:gravity="center"
-                                    android:paddingHorizontal="8dp"
+                                    android:paddingHorizontal="10dp"
                                     android:text="1Y"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
                         </LinearLayout>
 
+                        <!-- Aggregation & Visual Cadence Preview -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:gravity="center_vertical"
+                            android:layout_marginTop="14dp"
+                            android:gravity="bottom"
                             android:orientation="horizontal">
 
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
+                                android:layout_weight="5"
                                 android:orientation="vertical">
 
                                 <TextView
@@ -815,41 +826,335 @@
                                     android:fontFamily="@font/inter"
                                     android:text="7-Day Aggregation"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="10sp" />
+                                    android:textSize="11sp" />
 
-                                <TextView
-                                    android:id="@+id/tvCadenceAggregation"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:fontFamily="@font/space_grotesk"
-                                    android:text="96.4 km"
-                                    android:textColor="@color/text_white"
-                                    android:textSize="22sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
+                                <LinearLayout
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
+                                    android:gravity="bottom"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:id="@+id/tvCadenceAggregation"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/space_grotesk"
+                                        android:text="96.4"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="28sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:layout_marginBottom="3dp"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="km"
+                                        android:textColor="@color/primary_cyan"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
                                     android:fontFamily="@font/inter"
-                                    android:text="Steady rider streak"
+                                    android:text="↗ Steady rider streak"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="10sp"
+                                    android:textSize="12sp"
                                     android:textStyle="bold" />
                             </LinearLayout>
 
-                            <Button
-                                android:id="@+id/btnViewFullTrips"
-                                android:layout_width="wrap_content"
-                                android:layout_height="32dp"
-                                android:background="@drawable/bg_pill_cyan"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:paddingHorizontal="12dp"
-                                android:text="Trips Tab ›"
-                                android:textColor="@color/primary_cyan"
-                                android:textSize="10sp"
-                                android:textStyle="bold" />
+                            <!-- Mini Cadence Bars (Fri, Sat, Sun) -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="7"
+                                android:gravity="end|bottom"
+                                android:orientation="horizontal">
+
+                                <!-- Fri -->
+                                <LinearLayout
+                                    android:layout_width="44dp"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="12.4"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="10sp" />
+
+                                    <View
+                                        android:layout_width="14dp"
+                                        android:layout_height="32dp"
+                                        android:layout_marginVertical="3dp"
+                                        android:background="@drawable/bg_pill_cyan" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="Fri"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="10sp" />
+                                </LinearLayout>
+
+                                <!-- Sat -->
+                                <LinearLayout
+                                    android:layout_width="44dp"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="21.8"
+                                        android:textColor="@color/primary_cyan"
+                                        android:textSize="10sp"
+                                        android:textStyle="bold" />
+
+                                    <View
+                                        android:layout_width="14dp"
+                                        android:layout_height="52dp"
+                                        android:layout_marginVertical="3dp"
+                                        android:background="@drawable/bg_tab_pill_active" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="Sat"
+                                        android:textColor="@color/primary_cyan"
+                                        android:textSize="10sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <!-- Sun -->
+                                <LinearLayout
+                                    android:layout_width="44dp"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="18.6"
+                                        android:textColor="@color/status_emerald"
+                                        android:textSize="10sp" />
+
+                                    <View
+                                        android:layout_width="14dp"
+                                        android:layout_height="44dp"
+                                        android:layout_marginVertical="3dp"
+                                        android:background="@drawable/bg_pill_emerald" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="Sun"
+                                        android:textColor="@color/status_emerald"
+                                        android:textSize="10sp" />
+                                </LinearLayout>
+                            </LinearLayout>
                         </LinearLayout>
+
+                        <!-- 3 Sub-Metrics with Contextual Icons -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal"
+                            android:weightSum="3">
+
+                            <!-- Metric 1: 7-Day Total -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:padding="8dp">
+
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:contentDescription="Calendar"
+                                    android:src="@drawable/ic_calendar"
+                                    app:tint="@color/primary_cyan" />
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="7-Day Total"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="96.4 km"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Metric 2: Avg / Day -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:padding="8dp">
+
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:contentDescription="Clock"
+                                    android:src="@drawable/ic_clock"
+                                    app:tint="@color/status_emerald" />
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="Avg / Day"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="13.8 km"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Metric 3: Trips Logged -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:padding="8dp">
+
+                                <ImageView
+                                    android:layout_width="18dp"
+                                    android:layout_height="18dp"
+                                    android:contentDescription="Trips"
+                                    android:src="@drawable/ic_scooter_trip"
+                                    app:tint="@color/primary_cyan" />
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/inter"
+                                        android:text="Trips Logged"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="8 trips"
+                                        android:textColor="@color/text_white"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- View Full Distance History Action Button -->
+                        <LinearLayout
+                            android:id="@+id/btnViewFullHistory"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="14dp"
+                            android:background="@drawable/bg_tab_pill_active"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="14dp">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:contentDescription="Analytics"
+                                android:src="@drawable/ic_bar_chart"
+                                app:tint="@color/primary_cyan" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:fontFamily="@font/space_grotesk"
+                                android:text="View Full Distance History"
+                                android:textColor="@color/primary_cyan"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginStart="6dp"
+                                android:contentDescription="Go"
+                                android:src="@drawable/ic_chevron_right"
+                                app:tint="@color/primary_cyan" />
+                        </LinearLayout>
+
+                        <!-- Hidden compatibility button for btnViewFullTrips -->
+                        <Button
+                            android:id="@+id/btnViewFullTrips"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -868,17 +1173,17 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="5dp"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/surface_container_low"
+                        app:cardBackgroundColor="@color/glass_card_bg"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/glass_border"
+                        app:cardElevation="3dp"
+                        app:strokeColor="@color/glass_card_stroke"
                         app:strokeWidth="1dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="12dp">
+                            android:padding="14dp">
 
                             <RelativeLayout
                                 android:layout_width="match_parent"
@@ -890,7 +1195,7 @@
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:text="POWER PACK"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="9sp"
+                                    android:textSize="11sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -900,11 +1205,12 @@
                                     android:layout_alignParentEnd="true"
                                     android:background="@drawable/bg_pill_emerald"
                                     android:fontFamily="@font/jetbrains_mono"
-                                    android:paddingHorizontal="5dp"
-                                    android:paddingVertical="1dp"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
                                     android:text="98% SOH"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
                             </RelativeLayout>
 
                             <LinearLayout
@@ -921,7 +1227,7 @@
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="68%"
                                     android:textColor="@color/text_white"
-                                    android:textSize="22sp"
+                                    android:textSize="26sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -929,11 +1235,12 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="6dp"
-                                    android:layout_marginBottom="2dp"
+                                    android:layout_marginBottom="3dp"
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:text="≈ 54 km"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="11sp" />
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
                             </LinearLayout>
 
                             <ProgressBar
@@ -941,7 +1248,7 @@
                                 style="?android:attr/progressBarStyleHorizontal"
                                 android:layout_width="match_parent"
                                 android:layout_height="6dp"
-                                android:layout_marginTop="6dp"
+                                android:layout_marginTop="8dp"
                                 android:max="100"
                                 android:progress="68"
                                 android:progressDrawable="@drawable/progress_battery" />
@@ -949,7 +1256,7 @@
                             <RelativeLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp">
+                                android:layout_marginTop="8dp">
 
                                 <TextView
                                     android:id="@+id/tvVoltage"
@@ -958,7 +1265,7 @@
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:text="51.2 V"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="9sp" />
+                                    android:textSize="11sp" />
 
                                 <TextView
                                     android:id="@+id/tvAiRange"
@@ -968,7 +1275,8 @@
                                     android:fontFamily="@font/jetbrains_mono"
                                     android:text="AI: 72 km"
                                     android:textColor="@color/primary_cyan"
-                                    android:textSize="9sp" />
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
                             </RelativeLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
@@ -979,30 +1287,45 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="5dp"
                         android:layout_weight="1"
-                        app:cardBackgroundColor="@color/surface_container_low"
+                        app:cardBackgroundColor="@color/glass_card_bg"
                         app:cardCornerRadius="20dp"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/glass_border"
+                        app:cardElevation="3dp"
+                        app:strokeColor="@color/glass_card_stroke"
                         app:strokeWidth="1dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="12dp">
+                            android:padding="14dp">
 
                             <RelativeLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content">
 
-                                <TextView
+                                <LinearLayout
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:fontFamily="@font/jetbrains_mono"
-                                    android:text="SMART INSIGHTS"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="9sp"
-                                    android:textStyle="bold" />
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="14dp"
+                                        android:layout_height="14dp"
+                                        android:contentDescription="Trophy"
+                                        android:src="@drawable/ic_trophy"
+                                        app:tint="@color/status_amber" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:fontFamily="@font/jetbrains_mono"
+                                        android:text="SMART INSIGHTS"
+                                        android:textColor="@color/text_secondary"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
 
                                 <TextView
                                     android:id="@+id/tvAiEcoScore"
@@ -1011,11 +1334,12 @@
                                     android:layout_alignParentEnd="true"
                                     android:background="@drawable/bg_pill_emerald"
                                     android:fontFamily="@font/jetbrains_mono"
-                                    android:paddingHorizontal="5dp"
-                                    android:paddingVertical="1dp"
+                                    android:paddingHorizontal="7dp"
+                                    android:paddingVertical="2dp"
                                     android:text="96/100"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
                             </RelativeLayout>
 
                             <TextView
@@ -1026,7 +1350,7 @@
                                 android:fontFamily="@font/space_grotesk"
                                 android:text="Master Throttle Flow"
                                 android:textColor="@color/text_white"
-                                android:textSize="12sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -1039,7 +1363,7 @@
                                 android:maxLines="2"
                                 android:text="Maintain smooth throttle in ECO/City mode for maximum range."
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp" />
+                                android:textSize="12sp" />
 
                             <TextView
                                 android:id="@+id/tvAiRangeSub"
@@ -1049,7 +1373,7 @@
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="+18 km bonus range"
                                 android:textColor="@color/primary_cyan"
-                                android:textSize="9sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -1059,22 +1383,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="14dp"
-                    app:cardBackgroundColor="@color/surface_container_low"
+                    app:cardBackgroundColor="@color/glass_card_bg"
                     app:cardCornerRadius="20dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/glass_border"
+                    app:cardElevation="3dp"
+                    app:strokeColor="@color/glass_card_stroke"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="10dp">
+                            android:layout_marginBottom="12dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -1082,7 +1406,7 @@
                                 android:fontFamily="@font/space_grotesk"
                                 android:text="Ownership Savings"
                                 android:textColor="@color/text_white"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -1091,11 +1415,11 @@
                                 android:layout_alignParentEnd="true"
                                 android:background="@drawable/bg_card_high"
                                 android:fontFamily="@font/jetbrains_mono"
-                                android:paddingHorizontal="6dp"
-                                android:paddingVertical="2dp"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="3dp"
                                 android:text="Lifetime Matrix"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="9sp" />
+                                android:textSize="11sp" />
                         </RelativeLayout>
 
                         <LinearLayout
@@ -1105,6 +1429,7 @@
                             android:orientation="horizontal"
                             android:weightSum="4">
 
+                            <!-- Month Saved -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -1113,16 +1438,24 @@
                                 android:background="@drawable/bg_card_high"
                                 android:gravity="center"
                                 android:orientation="vertical"
-                                android:paddingVertical="8dp">
+                                android:paddingVertical="10dp">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:contentDescription="Rupee"
+                                    android:src="@drawable/ic_rupee"
+                                    app:tint="@color/status_emerald" />
 
                                 <TextView
                                     android:id="@+id/tvCloudMoneySaved"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="₹1,240"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="13sp"
+                                    android:textSize="14sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -1131,9 +1464,10 @@
                                     android:fontFamily="@font/inter"
                                     android:text="This Month"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
 
+                            <!-- Fuel Saved -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -1142,16 +1476,24 @@
                                 android:background="@drawable/bg_card_high"
                                 android:gravity="center"
                                 android:orientation="vertical"
-                                android:paddingVertical="8dp">
+                                android:paddingVertical="10dp">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:contentDescription="Fuel"
+                                    android:src="@drawable/ic_fuel"
+                                    app:tint="@color/primary_cyan" />
 
                                 <TextView
                                     android:id="@+id/tvCloudPetrolSaved"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="32.5 L"
                                     android:textColor="@color/primary_cyan"
-                                    android:textSize="13sp"
+                                    android:textSize="14sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -1160,9 +1502,10 @@
                                     android:fontFamily="@font/inter"
                                     android:text="Fuel Saved"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
 
+                            <!-- CO2 Offset -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -1171,16 +1514,24 @@
                                 android:background="@drawable/bg_card_high"
                                 android:gravity="center"
                                 android:orientation="vertical"
-                                android:paddingVertical="8dp">
+                                android:paddingVertical="10dp">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:contentDescription="CO2"
+                                    android:src="@drawable/ic_leaf"
+                                    app:tint="@color/status_emerald" />
 
                                 <TextView
                                     android:id="@+id/tvCloudCo2Saved"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="74 kg"
                                     android:textColor="@color/status_emerald"
-                                    android:textSize="13sp"
+                                    android:textSize="14sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -1189,9 +1540,10 @@
                                     android:fontFamily="@font/inter"
                                     android:text="CO₂ Offset"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
 
+                            <!-- Lifetime Saved -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -1200,16 +1552,24 @@
                                 android:background="@drawable/bg_card_high"
                                 android:gravity="center"
                                 android:orientation="vertical"
-                                android:paddingVertical="8dp">
+                                android:paddingVertical="10dp">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:contentDescription="Star"
+                                    android:src="@drawable/ic_star"
+                                    app:tint="@color/status_amber" />
 
                                 <TextView
                                     android:id="@+id/tvTotalLifetimeSaved"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
                                     android:fontFamily="@font/space_grotesk"
                                     android:text="₹18,600"
                                     android:textColor="@color/status_amber"
-                                    android:textSize="13sp"
+                                    android:textSize="14sp"
                                     android:textStyle="bold" />
 
                                 <TextView
@@ -1218,7 +1578,7 @@
                                     android:fontFamily="@font/inter"
                                     android:text="Total Saved"
                                     android:textColor="@color/text_secondary"
-                                    android:textSize="8sp" />
+                                    android:textSize="11sp" />
                             </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
@@ -1229,22 +1589,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="14dp"
-                    app:cardBackgroundColor="@color/surface_container_low"
+                    app:cardBackgroundColor="@color/glass_card_bg"
                     app:cardCornerRadius="20dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/glass_border"
+                    app:cardElevation="3dp"
+                    app:strokeColor="@color/glass_card_stroke"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="14dp">
+                        android:padding="16dp">
 
                         <RelativeLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="10dp">
+                            android:layout_marginBottom="12dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -1252,7 +1612,7 @@
                                 android:fontFamily="@font/space_grotesk"
                                 android:text="Cluster &amp; Navigation"
                                 android:textColor="@color/text_white"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -1262,18 +1622,19 @@
                                 android:layout_alignParentEnd="true"
                                 android:background="@drawable/bg_pill_cyan"
                                 android:fontFamily="@font/jetbrains_mono"
-                                android:paddingHorizontal="6dp"
-                                android:paddingVertical="2dp"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="3dp"
                                 android:text="OFF"
                                 android:textColor="@color/primary_cyan"
-                                android:textSize="9sp" />
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
                         </RelativeLayout>
 
                         <!-- Nav mode segmented selector -->
                         <LinearLayout
                             android:id="@+id/toggleNavMode"
                             android:layout_width="match_parent"
-                            android:layout_height="36dp"
+                            android:layout_height="38dp"
                             android:background="@drawable/bg_segmented_track"
                             android:orientation="horizontal"
                             android:padding="2dp"
@@ -1288,7 +1649,7 @@
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="OFF"
                                 android:textColor="@color/primary_cyan"
-                                android:textSize="10sp"
+                                android:textSize="11sp"
                                 android:textStyle="bold" />
 
                             <Button
@@ -1300,7 +1661,7 @@
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="TBT (BLE)"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
 
                             <Button
                                 android:id="@+id/btnNavModeMirror"
@@ -1311,18 +1672,18 @@
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="MIRROR"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp" />
+                                android:textSize="11sp" />
                         </LinearLayout>
 
                         <TextView
                             android:id="@+id/tvNavInstruction"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:fontFamily="@font/inter"
                             android:text="Select TBT or Mirror to stream to cluster"
                             android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
+                            android:textSize="12sp" />
 
                         <TextView
                             android:id="@+id/tvNavDetail"
@@ -1332,50 +1693,50 @@
                             android:fontFamily="@font/jetbrains_mono"
                             android:text=""
                             android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:textSize="11sp" />
 
                         <!-- Action buttons -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:orientation="horizontal">
 
                             <Button
                                 android:id="@+id/btnNavAction"
                                 android:layout_width="0dp"
-                                android:layout_height="34dp"
+                                android:layout_height="36dp"
                                 android:layout_weight="1"
                                 android:background="@drawable/bg_pill_cyan"
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="START NAV STREAM"
                                 android:textColor="@color/primary_cyan"
-                                android:textSize="10sp"
+                                android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:visibility="gone" />
 
                             <Button
                                 android:id="@+id/btnToggleMirrorOrientation"
                                 android:layout_width="0dp"
-                                android:layout_height="34dp"
+                                android:layout_height="36dp"
                                 android:layout_marginStart="6dp"
                                 android:layout_weight="1"
                                 android:background="@drawable/bg_card_high"
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="ROTATE 90°"
                                 android:textColor="@color/text_primary"
-                                android:textSize="10sp"
+                                android:textSize="11sp"
                                 android:visibility="gone" />
 
                             <Button
                                 android:id="@+id/btnTestTbtNav"
                                 android:layout_width="wrap_content"
-                                android:layout_height="34dp"
+                                android:layout_height="36dp"
                                 android:background="@drawable/bg_card_high"
                                 android:fontFamily="@font/jetbrains_mono"
                                 android:text="TEST TBT"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="9sp" />
+                                android:textSize="10sp" />
                         </LinearLayout>
 
                         <!-- Real-time Speed Graph -->
@@ -1383,7 +1744,214 @@
                             android:id="@+id/speedGraph"
                             android:layout_width="match_parent"
                             android:layout_height="64dp"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="12dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- SCOOTER HEALTH & TELEMETRY STATUS (Restored from Stitch Spec) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardScooterHealth"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardBackgroundColor="@color/glass_card_bg"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="3dp"
+                    app:strokeColor="@color/glass_card_stroke"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp">
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <FrameLayout
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:background="@drawable/bg_pill_emerald">
+
+                                    <ImageView
+                                        android:layout_width="18dp"
+                                        android:layout_height="18dp"
+                                        android:layout_gravity="center"
+                                        android:contentDescription="Scooter Health"
+                                        android:src="@drawable/ic_health"
+                                        app:tint="@color/status_emerald" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="10dp"
+                                    android:fontFamily="@font/space_grotesk"
+                                    android:text="Scooter Health"
+                                    android:textColor="@color/text_white"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvHealthStatusBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:background="@drawable/bg_pill_emerald"
+                                android:fontFamily="@font/jetbrains_mono"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="4dp"
+                                android:text="● All Systems OK"
+                                android:textColor="@color/status_emerald"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </RelativeLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:baselineAligned="false"
+                            android:orientation="horizontal"
+                            android:weightSum="4">
+
+                            <!-- Battery Column -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/inter"
+                                    android:text="Battery"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvHealthBattery"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:fontFamily="@font/space_grotesk"
+                                    android:text="Healthy"
+                                    android:textColor="@color/status_emerald"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Cluster Column -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/inter"
+                                    android:text="Cluster"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvHealthCluster"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:fontFamily="@font/space_grotesk"
+                                    android:text="Connected"
+                                    android:textColor="@color/primary_cyan"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Cloud Column -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginHorizontal="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/inter"
+                                    android:text="Cloud"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvHealthCloud"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:fontFamily="@font/space_grotesk"
+                                    android:text="Synced"
+                                    android:textColor="@color/status_emerald"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Service Due Column -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="3dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_card_high"
+                                android:gravity="center"
+                                android:orientation="vertical"
+                                android:paddingVertical="10dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/inter"
+                                    android:text="Service Due"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvHealthServiceDue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:fontFamily="@font/space_grotesk"
+                                    android:text="3,295 km"
+                                    android:textColor="@color/text_white"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

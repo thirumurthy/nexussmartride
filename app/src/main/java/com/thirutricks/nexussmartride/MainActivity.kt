@@ -306,8 +306,12 @@ class MainActivity : AppCompatActivity() {
         binding.btnNavScooter.setOnClickListener { switchTab(TAB_SCOOTER) }
         binding.btnNavSettings.setOnClickListener { switchTab(TAB_SETTINGS) }
 
-        // Switch to Trips tab from Home cadence card button
+        // Switch to Trips tab from Home cadence card buttons
         binding.btnViewFullTrips.setOnClickListener { switchTab(TAB_TRIPS) }
+        binding.btnViewFullHistory.setOnClickListener { switchTab(TAB_TRIPS) }
+
+        // Switch to Scooter tab from Health card
+        binding.cardScooterHealth.setOnClickListener { switchTab(TAB_SCOOTER) }
 
         // Initialize active tab styling
         switchTab(TAB_HOME)
@@ -345,19 +349,20 @@ class MainActivity : AppCompatActivity() {
     // ─── Quick Feature Tiles: Music & Maps ────────────────────────────────────
 
     private fun setupQuickFeatures() {
-        // Music Sync Play Button
+        // Music Sync Card - Entire card click launches YouTube directly
+        binding.cardMusicSync.setOnClickListener {
+            openYouTubeApp()
+        }
         binding.btnMusicPlay.setOnClickListener {
-            playMusicAudio()
+            openYouTubeApp()
         }
 
-        // Music Selector Modal Button
-        binding.btnMusicSelectApp.setOnClickListener {
-            showMusicAppSelectDialog()
+        // Live Maps Card - Entire card click launches Google Maps directly
+        binding.cardMapsLive.setOnClickListener {
+            openGoogleMapsApp()
         }
-
-        // Google Maps Open Button
         binding.btnMapsOpen.setOnClickListener {
-            openGoogleMapsNavigation()
+            openGoogleMapsApp()
         }
 
         // Share Location Button
@@ -366,64 +371,77 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun playMusicAudio() {
-        val ytmPackage = "com.google.android.apps.youtube.music"
-        val ytPackage = "com.google.android.youtube"
+    private fun openYouTubeApp() {
         val pm = packageManager
-
-        val intent = pm.getLaunchIntentForPackage(ytmPackage)
-            ?: pm.getLaunchIntentForPackage(ytPackage)
-            ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com"))
-
-        try {
-            startActivity(intent)
-            Toast.makeText(this, "Streaming audio to cluster...", Toast.LENGTH_SHORT).show()
-            MapNotificationListenerService.triggerActiveMediaSync()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Opening YouTube...", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showMusicAppSelectDialog() {
-        val apps = arrayOf("YouTube Music", "Spotify", "Apple Music", "YouTube (Default)")
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Cluster Music Player")
-            .setItems(apps) { _, which ->
-                when (which) {
-                    0 -> launchAppByPackage("com.google.android.apps.youtube.music", "https://music.youtube.com")
-                    1 -> launchAppByPackage("com.spotify.music", "https://open.spotify.com")
-                    2 -> launchAppByPackage("com.apple.android.music", "https://music.apple.com")
-                    3 -> launchAppByPackage("com.google.android.youtube", "https://youtube.com")
-                }
+        // 1. Direct package launch intent for YouTube app
+        var intent = pm.getLaunchIntentForPackage("com.google.android.youtube")
+        if (intent == null) {
+            // 2. Try URI with YouTube package
+            val ytUriIntent = Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:")).apply {
+                setPackage("com.google.android.youtube")
             }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
+            if (ytUriIntent.resolveActivity(pm) != null) {
+                intent = ytUriIntent
+            }
+        }
+        if (intent == null) {
+            // 3. Fallback to YouTube Music app
+            intent = pm.getLaunchIntentForPackage("com.google.android.apps.youtube.music")
+        }
+        if (intent == null) {
+            // 4. Web fallback
+            intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com"))
+        }
 
-    private fun launchAppByPackage(pkg: String, fallbackUrl: String) {
-        val intent = packageManager.getLaunchIntentForPackage(pkg)
-            ?: Intent(Intent.ACTION_VIEW, Uri.parse(fallbackUrl))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             startActivity(intent)
+            Toast.makeText(this, "Opening YouTube for TFT cluster...", Toast.LENGTH_SHORT).show()
             MapNotificationListenerService.triggerActiveMediaSync()
         } catch (e: Exception) {
-            Toast.makeText(this, "Could not launch app", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Unable to launch YouTube", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun openGoogleMapsNavigation() {
-        val gmmIntentUri = Uri.parse("google.navigation:q=home&mode=d")
-        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply {
+    private fun openGoogleMapsApp() {
+        val pm = packageManager
+        // 1. Direct navigation intent targeting Google Maps package
+        val navIntent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=navigation&mode=d")).apply {
             setPackage("com.google.android.apps.maps")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+        if (navIntent.resolveActivity(pm) != null) {
+            try {
+                startActivity(navIntent)
+                Toast.makeText(this, "Launching Google Maps Navigation...", Toast.LENGTH_SHORT).show()
+                return
+            } catch (_: Exception) {}
+        }
+
+        // 2. Direct package launch intent for Google Maps app
+        val launchIntent = pm.getLaunchIntentForPackage("com.google.android.apps.maps")?.apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (launchIntent != null) {
+            try {
+                startActivity(launchIntent)
+                Toast.makeText(this, "Opening Google Maps...", Toast.LENGTH_SHORT).show()
+                return
+            } catch (_: Exception) {}
+        }
+
+        // 3. Web Maps fallback
         try {
-            startActivity(mapIntent)
-            Toast.makeText(this, "Opening Google Maps navigation...", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com"))
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com")).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
             startActivity(browserIntent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Unable to launch Maps", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun openGoogleMapsNavigation() = openGoogleMapsApp()
 
     private fun shareLiveLocation() {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -512,7 +530,7 @@ class MainActivity : AppCompatActivity() {
 
         // Live GPS in Scooter tab
         binding.btnLiveGps.setOnClickListener {
-            openGoogleMapsNavigation()
+            openGoogleMapsApp()
         }
 
         // Run Diagnostics Scan
@@ -1210,6 +1228,12 @@ class MainActivity : AppCompatActivity() {
             binding.tvCloudCo2Saved.text = "%.0f kg".format(ins.co2SavedKg)
             binding.tvTotalLifetimeSaved.text = "₹${ins.totalLifetimeSavedInr}"
 
+            // Scooter Health Status Card
+            binding.tvHealthBattery.text = if (ins.batterySoh > 0) "${ins.batterySoh}% SOH" else "Healthy"
+            binding.tvHealthCluster.text = if (isConnected) "Connected" else "Standby"
+            binding.tvHealthCloud.text = if (ins.lastSyncTimeMs > 0) "Synced" else "Live"
+            binding.tvHealthServiceDue.text = if (ins.kmUntilService > 0) "%.0f km".format(ins.kmUntilService) else "3,295 km"
+
             // AI Insights Tab
             binding.tvEcoScoreBig.text = "${ins.ecoScore}"
             binding.tvFleetRankBadge.text = ins.fleetRank
@@ -1248,6 +1272,8 @@ class MainActivity : AppCompatActivity() {
         binding.tvStatus.setTextColor(ContextCompat.getColor(this, R.color.primary_cyan))
         binding.dockStatusDot.setBackgroundResource(R.drawable.bg_pill_emerald)
         binding.tvDockSyncStatus.text = "Connected to Scooter • 100% Sync"
+        binding.tvHealthCluster.text = "Connected"
+        binding.tvHealthCluster.setTextColor(ContextCompat.getColor(this, R.color.primary_cyan))
     }
 
     private fun setUiDisconnected() {
@@ -1257,6 +1283,8 @@ class MainActivity : AppCompatActivity() {
         binding.tvDockSyncStatus.text = "Disconnected • Tap Status to Connect"
         binding.tvSpeed.text = "0"
         binding.tvRange.text = "≈ 0 km"
+        binding.tvHealthCluster.text = "Standby"
+        binding.tvHealthCluster.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
     }
 
     private fun updateStaleIndicator() {
