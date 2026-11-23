@@ -1136,9 +1136,16 @@ class MainActivity : AppCompatActivity() {
                 binding.tvVoltage.text = "%.1fV".format(data.voltageV)
             }
 
-            // Trip distance
-            if (data.tripKm >= 0.0) {
-                binding.tvTodayKm.text = "%.1f".format(data.tripKm)
+            // Odometer-based Distance Today (Today Odometer - Yesterday Odometer)
+            if (data.odometerKm > 0.0) {
+                lifecycleScope.launch {
+                    val distToday = repository.updateOdometerReading(data.odometerKm)
+                    if (distToday in 0.0..300.0) {
+                        runOnUiThread {
+                            binding.tvTodayKm.text = "%.1f".format(distToday)
+                        }
+                    }
+                }
             }
 
             // State of Charge
@@ -1166,11 +1173,11 @@ class MainActivity : AppCompatActivity() {
         val today = repository.getTodayDistance()
         val yesterday = repository.getYesterdayDistance()
         runOnUiThread {
-            if (today > 0.0) {
+            if (today in 0.0..300.0 && today > 0.0) {
                 binding.tvTodayKm.text = "%.1f".format(today)
             }
-            if (yesterday > 0.0) {
-                val diffPct = if (today > 0.0) Math.round(((today - yesterday) / yesterday) * 100) else 0
+            if (yesterday in 0.0..300.0 && yesterday > 0.0) {
+                val diffPct = if (today >= 0.0) Math.round(((today - yesterday) / yesterday) * 100) else 0
                 binding.tvVsYesterday.text = if (diffPct >= 0) "+$diffPct% vs yesterday" else "$diffPct% vs yesterday"
             }
         }
@@ -1204,8 +1211,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // Hero Telemetry Overlay
-            binding.tvTodayKm.text = "%.1f".format(ins.todayDistanceKm)
+            // Hero Telemetry Overlay (Reliable Today Distance <= 300 km)
+            val safeTodayDist = if (ins.todayDistanceKm in 0.0..300.0) ins.todayDistanceKm else 0.0
+            binding.tvTodayKm.text = "%.1f".format(safeTodayDist)
             binding.tvVsYesterday.text = if (ins.vsYesterdayPct >= 0) "+${ins.vsYesterdayPct}% vs yesterday" else "${ins.vsYesterdayPct}% vs yesterday"
             binding.tvDailyGoalProgress.text = "Goal: %.0f km (%d%% done)".format(ins.dailyGoalKm, ins.goalProgressPct)
             binding.tvAvgSpeed.text = "%.0f km/h".format(ins.todayAvgSpeedKmh)

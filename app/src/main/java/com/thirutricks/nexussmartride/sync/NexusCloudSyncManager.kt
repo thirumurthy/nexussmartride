@@ -147,8 +147,8 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
         coroutineScope.launch {
             // 1. Fetch historical cloud insights for immediate dashboard restoration
             fetchInsights(id)
-            // 2. Perform live CONNECT sync if valid telemetry or last known telemetry exists
-            if (data.isValid || data.odometerKm >= 0) {
+            // 2. Perform live CONNECT sync only if valid odometer exists
+            if (data.odometerKm > 0.0) {
                 syncTelemetryInternal(id, data, TRIGGER_CONNECT)
             }
             // 3. Flush any pending offline syncs
@@ -164,7 +164,9 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
         val id = resolveDeviceId(deviceAddress)
         Log.i(TAG, "onClusterDisconnected: Capturing final ride telemetry for $id (Trigger=DISCONNECT)")
         coroutineScope.launch {
-            syncTelemetryInternal(id, lastData, TRIGGER_DISCONNECT)
+            if (lastData.odometerKm > 0.0 || prefs.getFloat("last_known_odometer", -1f) > 0f) {
+                syncTelemetryInternal(id, lastData, TRIGGER_DISCONNECT)
+            }
         }
     }
 
@@ -203,7 +205,18 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
         data: ScooterData,
         trigger: String
     ): Pair<Boolean, String> {
-        val odo = if (data.odometerKm >= 0) data.odometerKm else 0.0
+        val odo = if (data.odometerKm > 0.0) {
+            prefs.edit().putFloat("last_known_odometer", data.odometerKm.toFloat()).apply()
+            data.odometerKm
+        } else {
+            val cached = prefs.getFloat("last_known_odometer", -1f).toDouble()
+            if (cached > 0.0) cached else -1.0
+        }
+
+        if (odo <= 0.0 && trigger == TRIGGER_PERIODIC) {
+            return Pair(false, "Skipping periodic sync without valid odometer")
+        }
+
         val trip = if (data.tripKm >= 0) data.tripKm else 0.0
         val soc = if (data.socPercent in 0..100) data.socPercent else 50
         val range = if (data.remainingKm >= 0) data.remainingKm else 0

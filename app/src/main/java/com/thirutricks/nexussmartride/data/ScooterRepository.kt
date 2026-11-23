@@ -37,41 +37,64 @@ class ScooterRepository(private val dao: ScooterDao) {
             )
         )
         
-        // Update daily distance if running
-        // For now, we estimate distance = speed * time
-        // (This should be replaced with native odometer if found)
-        if (data.vehicleState == 2 && data.speedKmh > 0) {
-            updateDailyDistance(data)
+        // Update daily distance if valid odometer received
+        if (data.odometerKm > 0.0) {
+            updateOdometerReading(data.odometerKm)
         }
     }
 
-    private suspend fun updateDailyDistance(data: ScooterData) {
-        val today = dateFormatter.format(Date())
-        val existing = dao.getDailyTravel(today)
-        
-        // Interval is roughly 10 minutes (based on external sync logic)
-        // or whatever the snapshot interval is. 
-        // Better: store last sync time and calculate precisely.
-        val lastLog = dao.getLogsSince(System.currentTimeMillis() - 15 * 60 * 1000).lastOrNull { it.timestamp < data.timestampMs }
-        
-        val distanceDelta = if (lastLog != null) {
-            val hours = (data.timestampMs - lastLog.timestamp) / 3600000.0
-            val avgSpeed = (data.speedKmh + lastLog.speedKmh) / 2.0
-            avgSpeed * hours
-        } else 0.0
+    /**
+     * Updates daily distance driven using the reliable odometer difference:
+     *   Distance driven today = Today's current odometer - Yesterday's final odometer.
+     * If the difference is > 300 km or < 0 km, ignore (charging takes ~3 hrs, 90 km per charge max).
+     */
+    suspend fun updateOdometerReading(odometerKm: Double): Double {
+        if (odometerKm <= 0.0) return getTodayDistance()
 
-        val newDist = (existing?.distanceKm ?: 0.0) + distanceDelta
-        dao.insertDailyTravel(DailyTravelEntity(today, newDist))
+        val today = dateFormatter.format(Date())
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterday = dateFormatter.format(cal.time)
+
+        val yesterdayTravel = dao.getDailyTravel(yesterday)
+        val todayTravel = dao.getDailyTravel(today)
+
+        // Baseline odometer is yesterday's end odometer if available
+        val baselineOdo = when {
+            yesterdayTravel != null && yesterdayTravel.lastOdometer > 0.0 -> yesterdayTravel.lastOdometer
+            todayTravel != null && todayTravel.lastOdometer > 0.0 && todayTravel.distanceKm <= 0.0 -> todayTravel.lastOdometer
+            else -> todayTravel?.lastOdometer?.takeIf { it > 0.0 } ?: odometerKm
+        }
+
+        val diff = odometerKm - baselineOdo
+        val distance = if (diff in 0.0..300.0) {
+            Math.round(diff * 10.0) / 10.0
+        } else {
+            todayTravel?.distanceKm ?: 0.0
+        }
+
+        dao.insertDailyTravel(
+            DailyTravelEntity(
+                date = today,
+                distanceKm = distance,
+                lastOdometer = odometerKm
+            )
+        )
+        return distance
     }
 
     suspend fun getTodayDistance(): Double {
-        return dao.getDailyTravel(dateFormatter.format(Date()))?.distanceKm ?: 0.0
+        val today = dao.getDailyTravel(dateFormatter.format(Date()))
+        val dist = today?.distanceKm ?: 0.0
+        return if (dist in 0.0..300.0) dist else 0.0
     }
 
     suspend fun getYesterdayDistance(): Double {
         val cal = Calendar.getInstance()
         cal.add(Calendar.DAY_OF_YEAR, -1)
-        return dao.getDailyTravel(dateFormatter.format(cal.time))?.distanceKm ?: 0.0
+        val yesterday = dao.getDailyTravel(dateFormatter.format(cal.time))
+        val dist = yesterday?.distanceKm ?: 0.0
+        return if (dist in 0.0..300.0) dist else 0.0
     }
 
     fun getAllDailyTravel() = dao.getAllDailyTravel()
