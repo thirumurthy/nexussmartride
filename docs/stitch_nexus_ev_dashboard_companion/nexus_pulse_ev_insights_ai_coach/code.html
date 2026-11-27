@@ -1,0 +1,561 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Nexus Pulse EV Dashboard</title>
+<!-- Tailwind CSS v3 CDN with Forms and Container Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts for High-Tech EV Automotive Typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Custom Tailwind Config for EV Cyber Neon Theme -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-tertiary-container": "#7e4e00",
+          "on-error-container": "#ffdad6",
+          "on-surface-variant": "#bac9cc",
+          "on-secondary-fixed-variant": "#005232",
+          "primary-fixed-dim": "#00daf3",
+          "background": "#10131a",
+          "primary-container": "#00e5ff",
+          "primary-fixed": "#9cf0ff",
+          "on-surface": "#e1e2eb",
+          "on-primary-container": "#00626e",
+          "outline": "#849396",
+          "tertiary-fixed": "#ffddb8",
+          "outline-variant": "#3b494c",
+          "surface-container-low": "#191c22",
+          "surface-container-highest": "#32353c",
+          "inverse-primary": "#006875",
+          "surface-dim": "#10131a",
+          "surface-container": "#1d2026",
+          "secondary": "#ceffdf",
+          "on-tertiary-fixed": "#2a1700",
+          "on-primary": "#00363d",
+          "secondary-fixed-dim": "#00e293",
+          "tertiary": "#ffe9d3",
+          "surface-variant": "#32353c",
+          "on-tertiary": "#472a00",
+          "on-error": "#690005",
+          "tertiary-container": "#ffc681",
+          "secondary-fixed": "#50ffaf",
+          "on-secondary": "#003921",
+          "on-primary-fixed": "#001f24",
+          "surface-bright": "#363940",
+          "secondary-container": "#01f5a0",
+          "surface-container-high": "#272a31",
+          "inverse-on-surface": "#2e3037",
+          "on-background": "#e1e2eb",
+          "on-primary-fixed-variant": "#004f58",
+          "surface": "#10131a",
+          "error-container": "#93000a",
+          "on-tertiary-fixed-variant": "#653e00",
+          "tertiary-fixed-dim": "#ffb95f",
+          "primary": "#c3f5ff",
+          "surface-tint": "#00daf3",
+          "error": "#ffb4ab",
+          "surface-container-lowest": "#0b0e14",
+          "on-secondary-container": "#006b43",
+          "on-secondary-fixed": "#002111",
+          "inverse-surface": "#e1e2eb"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter": "0.75rem",
+          "margin-desktop": "2rem",
+          "gutter-desktop": "1.25rem",
+          "space-xs": "0.25rem",
+          "space-lg": "1.25rem",
+          "margin": "1rem",
+          "space-sm": "0.5rem",
+          "space-xl": "1.75rem",
+          "space-md": "1rem"
+        },
+        "fontFamily": {
+          "body-lg": ["Manrope"],
+          "label-telemetry": ["Space Grotesk"],
+          "body-md": ["Manrope"],
+          "metric-numeral": ["Space Grotesk"],
+          "headline-md": ["Space Grotesk"],
+          "headline-sm": ["Space Grotesk"],
+          "headline-lg-mobile": ["Space Grotesk"],
+          "label-chip": ["Manrope"],
+          "display-hero": ["Space Grotesk"],
+          "headline-lg": ["Space Grotesk"],
+          "body-sm": ["Manrope"]
+        },
+        "fontSize": {
+          "body-lg": ["1rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "400" }],
+          "label-telemetry": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.14em", "fontWeight": "700" }],
+          "body-md": ["0.875rem", { "lineHeight": "1.375rem", "letterSpacing": "0.01em", "fontWeight": "400" }],
+          "metric-numeral": ["1.5rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+          "headline-md": ["1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+          "headline-sm": ["1.125rem", { "lineHeight": "1.5rem", "letterSpacing": "0em", "fontWeight": "600" }],
+          "headline-lg-mobile": ["1.75rem", { "lineHeight": "2.25rem", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "label-chip": ["0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.05em", "fontWeight": "600" }],
+          "display-hero": ["5rem", { "lineHeight": "5rem", "letterSpacing": "-0.04em", "fontWeight": "300" }],
+          "headline-lg": ["2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+          "body-sm": ["0.75rem", { "lineHeight": "1.125rem", "letterSpacing": "0.01em", "fontWeight": "500" }]
+        },
+        "boxShadow": {
+          "glow-cyan": "0 0 16px -2px rgba(0, 229, 255, 0.35)",
+          "glow-green": "0 0 16px -2px rgba(1, 245, 160, 0.35)"
+        }
+      }
+    }
+  };
+</script>
+<style data-purpose="custom-theme">
+  body {
+    background-color: #0b0e14;
+    -webkit-tap-highlight-color: transparent;
+    min-height: max(884px, 100dvh);
+  }
+  .neon-text-glow {
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
+<meta content="mobile_tab" name="shell-type">
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md flex justify-center selection:bg-primary-container selection:text-on-primary-container">
+<!-- Mobile Outer Wrapper -->
+<div class="w-full max-w-[425px] min-h-screen flex flex-col bg-surface shadow-2xl relative">
+<!-- BEGIN: Fixed Top App Bar -->
+<header class="fixed top-0 w-full max-w-[425px] z-50 bg-surface-container-lowest/85 backdrop-blur-xl shadow-sm" data-purpose="fixed-app-header">
+<!-- Status Bar Sub-row -->
+<div class="w-full px-5 pt-3 pb-1 flex items-center justify-between text-on-surface-variant font-label-telemetry" data-purpose="ios-status-bar">
+<span class="font-mono">7:09</span>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">bluetooth</span>
+<span class="text-[9px] font-bold px-1 bg-surface-container-highest rounded text-on-surface">VoLTE</span>
+<div class="flex items-end space-x-0.5 h-3">
+<div class="w-0.5 h-1.5 bg-on-surface-variant rounded-sm"></div>
+<div class="w-0.5 h-2 bg-on-surface-variant rounded-sm"></div>
+<div class="w-0.5 h-2.5 bg-on-surface-variant rounded-sm"></div>
+<div class="w-0.5 h-3 bg-on-surface-variant rounded-sm"></div>
+</div>
+<div class="flex items-center space-x-1 pl-1">
+<span class="text-[10px] font-mono">82%</span>
+<div class="w-4 h-2 border border-outline rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-primary-container w-3/4 rounded-2xs"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Brand Navigation Bar: Height 64px (h-16) -->
+<div class="h-16 px-5 flex items-center justify-between" data-purpose="app-header">
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<h1 class="font-headline-sm tracking-tight text-white uppercase flex items-center gap-1.5 leading-none">
+          Nexus <span class="text-primary-container neon-text-glow font-bold">Pulse</span>
+</h1>
+<span class="font-label-chip text-[9px] uppercase px-1.5 py-0.5 rounded-full bg-surface-container-highest text-primary-container">EX v4.2</span>
+</div>
+<div class="flex items-center space-x-1.5 text-body-sm text-on-surface-variant mt-1">
+<span class="font-label-telemetry text-on-surface">NEX_B9ABF</span>
+<span>•</span>
+<span class="flex items-center text-secondary-container font-label-chip text-[10px]">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse mr-1"></span>
+          Cloud Synced
+        </span>
+</div>
+</div>
+<!-- Live Bluetooth Status Pill -->
+<button class="flex items-center space-x-1.5 bg-secondary-container/10 text-secondary-container px-3 py-1.5 rounded-full text-xs font-semibold shadow-glow-green active:scale-95 transition-transform" data-purpose="connection-badge">
+<span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_8px_#01f5a0]"></span>
+<span class="font-label-chip uppercase tracking-wider text-[10px]">Connected</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+</button>
+</div>
+</header>
+<!-- END: Fixed Top App Bar -->
+<!-- Scrollable Main Content: pt-24 matches status bar + h-16 header -->
+<main class="px-4 space-y-4 pt-24 pb-28 z-10 flex-1">
+<div class="flex flex-col w-full space-y-4">
+<!-- 1. Time Filter Segmented Track -->
+<section class="w-full flex items-center justify-between bg-surface-container-low p-1 rounded-full shadow-inner">
+<button class="flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm transition-all duration-300 bg-primary-container text-on-primary-container font-bold shadow-glow-cyan">
+      30 Days
+    </button>
+<button class="flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm text-on-surface-variant hover:text-on-surface transition-colors">
+      7 Days
+    </button>
+<button class="flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm text-on-surface-variant hover:text-on-surface transition-colors">
+      All Time
+    </button>
+<button class="flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm text-secondary-container hover:text-secondary-fixed transition-colors flex items-center justify-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>
+      Predictive
+    </button>
+</section>
+<!-- 2. AI Smart Coach Hero Card -->
+<section class="relative w-full rounded-2xl bg-surface-container p-space-lg overflow-hidden shadow-xl">
+<!-- Ambient Sci-Fi Light Scrim -->
+<div class="absolute -top-16 -right-16 w-48 h-48 bg-primary-container/15 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-16 -left-16 w-44 h-44 bg-secondary-container/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col space-y-4">
+<!-- Card Micro-Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_#00e5ff]"></span>
+<span class="font-label-telemetry text-label-telemetry uppercase tracking-wider text-primary">NEXUS NEURAL COPILOT</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container/15 text-secondary-container font-label-chip text-body-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span> Top 5% Rider
+        </span>
+</div>
+<!-- Main Gauge & Vehicle Impression Stack -->
+<div class="flex items-center justify-between gap-3 pt-1">
+<!-- Circular Radial Gauge -->
+<div class="relative flex items-center justify-center w-28 h-28 flex-shrink-0">
+<svg class="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+<!-- Background Track -->
+<circle class="text-surface-container-highest" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" stroke-width="7"></circle>
+<!-- Progress Arc (96%) -->
+<circle class="drop-shadow-[0_0_8px_rgba(0,229,255,0.7)]" cx="50" cy="50" fill="transparent" r="42" stroke="#00e5ff" stroke-dasharray="263.89" stroke-dashoffset="10.55" stroke-linecap="round" stroke-width="7"></circle>
+</svg>
+<div class="absolute flex flex-col items-center justify-center text-center">
+<span class="font-metric-numeral text-headline-lg-mobile text-white leading-none">96</span>
+<span class="font-label-telemetry text-[9px] uppercase tracking-widest text-primary-container mt-0.5">/ 100 ECO</span>
+</div>
+</div>
+<!-- Coach Summary & Badge Image Slot -->
+<div class="flex flex-col flex-1 min-w-0 pl-1">
+<div class="flex items-center gap-1.5 text-secondary-container font-label-telemetry text-label-telemetry uppercase">
+<span class="material-symbols-outlined text-[16px]">electric_meter</span>
+<span>Master Throttle Flow</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+            Silky acceleration cadence preserved 18km of reserves this cycle.
+          </p>
+<!-- Vehicle Thumbnail Micro-Frame -->
+<div class="mt-2 relative w-full h-12 rounded-lg overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover opacity-60" data-alt="Futuristic cyber matte black electric smart scooter parked on dark neon urban rain road with cyan rim glows and LED pilot headlamps" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGeBLU6d8ZZl0gotcOQmJgtUZbI5A4nEFm3hNTSHwJ8KMuwQmKIyvkbTjElr1DNLO4e4ilOxg8i-y4k9bbOQRpBhY0Zw7himkcu7XItLWdgLpgmHV8OXm4fI-bzvXtM48kfut3SmNL6Y0BJCjEa8j178_VhyKhv00_vvxJ49cCzy__sBCcRcPvBMezJXOAB_-Ja7fuHU4nATOCFry4aXynrtu8JuBDPaprdTmee6uP">
+<div class="absolute inset-0 bg-gradient-to-r from-surface-container via-transparent to-surface-container/60"></div>
+<div class="absolute inset-y-0 right-2 flex items-center">
+<span class="font-label-telemetry text-[9px] px-2 py-0.5 rounded bg-surface-container-lowest/80 text-primary uppercase font-bold tracking-widest">
+                Pulse AI Active
+              </span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3 Punchy Quick Stat Pills -->
+<div class="grid grid-cols-3 gap-2 pt-1">
+<div class="bg-surface-container-high rounded-xl p-2.5 flex flex-col items-center justify-center text-center shadow-sm">
+<span class="font-metric-numeral text-headline-sm text-white">94%</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant uppercase mt-0.5 tracking-tight">Smooth Accel</span>
+</div>
+<div class="bg-surface-container-high rounded-xl p-2.5 flex flex-col items-center justify-center text-center shadow-sm">
+<span class="font-metric-numeral text-headline-sm text-secondary-container neon-text-glow">+18 km</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant uppercase mt-0.5 tracking-tight">Bonus Range</span>
+</div>
+<div class="bg-surface-container-high rounded-xl p-2.5 flex flex-col items-center justify-center text-center shadow-sm">
+<span class="font-metric-numeral text-headline-sm text-primary">0.04s</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant uppercase mt-0.5 tracking-tight">Throttle Lag</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Battery & Energy Flow Telemetry Card -->
+<section class="w-full rounded-2xl bg-surface-container p-space-lg shadow-xl space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary-container text-[20px]">bolt</span>
+<h2 class="font-headline-sm text-headline-sm text-white">Energy Dynamics</h2>
+</div>
+<span class="font-label-telemetry text-[11px] text-on-surface-variant uppercase tracking-wider">Dual Telemetry</span>
+</div>
+<!-- Energy Consumption vs Regen Split Card -->
+<div class="bg-surface-container-low rounded-xl p-3.5 space-y-3">
+<div class="flex justify-between items-baseline">
+<div class="flex flex-col">
+<span class="font-label-telemetry text-[10px] uppercase text-on-surface-variant">Consumed</span>
+<span class="font-metric-numeral text-headline-sm text-on-surface">42.6 <span class="text-body-sm font-label-telemetry text-on-surface-variant">kWh</span></span>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-telemetry text-[10px] uppercase text-secondary-container flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">replay</span> Recaptured Regen
+          </span>
+<span class="font-metric-numeral text-headline-sm text-secondary-container">6.8 <span class="text-body-sm font-label-telemetry text-secondary-container">kWh</span></span>
+</div>
+</div>
+<!-- Dual Visual Stacked Bar -->
+<div class="space-y-1.5">
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden flex">
+<div class="h-full bg-primary-container rounded-l-full shadow-glow-cyan" style="width: 84%"></div>
+<div class="h-full bg-secondary-container rounded-r-full shadow-glow-green" style="width: 16%"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] font-label-telemetry text-on-surface-variant px-0.5">
+<span>84% Drive Expenditure</span>
+<span class="text-secondary-container font-bold">+16% Energy Reclaimed</span>
+</div>
+</div>
+</div>
+<!-- Efficiency & AI Predicted Range Metrics (2 Columns) -->
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Efficiency Metric with Sparkline -->
+<div class="bg-surface-container-low rounded-xl p-3 flex flex-col justify-between">
+<div>
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase tracking-wider">Efficiency Index</span>
+<div class="font-metric-numeral text-headline-md text-white mt-0.5">
+            1.94 <span class="font-label-telemetry text-[11px] text-primary">km / %</span>
+</div>
+</div>
+<!-- Sparkline SVG -->
+<div class="w-full h-8 mt-2 flex items-end">
+<svg class="w-full h-8 overflow-visible" fill="none" viewBox="0 0 100 28">
+<path d="M0,22 Q15,20 30,12 T60,16 T85,6 L100,8" fill="none" stroke="#00daf3" stroke-linecap="round" stroke-width="2"></path>
+<path d="M0,22 Q15,20 30,12 T60,16 T85,6 L100,8 L100,28 L0,28 Z" fill="url(#sparkGrad)" opacity="0.15"></path>
+<defs>
+<linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00daf3"></stop>
+<stop offset="100%" stop-color="#00daf3" stop-opacity="0"></stop>
+</linearGradient>
+</defs>
+</svg>
+</div>
+</div>
+<!-- Real AI Range Prediction Split -->
+<div class="bg-surface-container-low rounded-xl p-3 flex flex-col justify-between">
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase tracking-wider">AI Range Projection</span>
+<div class="space-y-2 mt-1">
+<div class="flex items-center justify-between">
+<span class="font-label-chip text-[11px] text-secondary-container font-semibold">Eco Mode</span>
+<span class="font-metric-numeral text-headline-sm text-white">108 <span class="text-body-sm font-label-telemetry text-on-surface-variant">km</span></span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container rounded-full" style="width: 88%"></div>
+</div>
+<div class="flex items-center justify-between pt-0.5">
+<span class="font-label-chip text-[11px] text-primary-container font-semibold">Sport Mode</span>
+<span class="font-metric-numeral text-headline-sm text-white">84 <span class="text-body-sm font-label-telemetry text-on-surface-variant">km</span></span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 68%"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Riding Habits & Velocity Distribution -->
+<section class="w-full rounded-2xl bg-surface-container p-space-lg shadow-xl space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary-container text-[20px]">speed</span>
+<h2 class="font-headline-sm text-headline-sm text-white">Speed Zone Distribution</h2>
+</div>
+<span class="font-label-chip text-body-sm text-primary uppercase font-bold tracking-tight">Active Sensor</span>
+</div>
+<!-- Multi-Zone Horizontal Segmented Bar -->
+<div class="space-y-2">
+<div class="h-3.5 w-full bg-surface-container-highest rounded-full flex overflow-hidden p-0.5 gap-0.5">
+<div class="h-full bg-secondary-container rounded-l-full shadow-glow-green" style="width: 68%" title="Eco: 68%"></div>
+<div class="h-full bg-primary-container" style="width: 24%" title="Cruise: 24%"></div>
+<div class="h-full bg-tertiary-container rounded-r-full" style="width: 8%" title="Power: 8%"></div>
+</div>
+<!-- Zone Legends -->
+<div class="grid grid-cols-3 gap-1 pt-1">
+<div class="flex flex-col">
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase">Eco</span>
+</div>
+<span class="font-metric-numeral text-body-lg text-white font-bold">68%</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant">20-45 km/h</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase">Cruise</span>
+</div>
+<span class="font-metric-numeral text-body-lg text-white font-bold">24%</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant">45-65 km/h</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase">Power</span>
+</div>
+<span class="font-metric-numeral text-body-lg text-white font-bold">8%</span>
+<span class="font-label-chip text-[9px] text-on-surface-variant">&gt;65 km/h</span>
+</div>
+</div>
+</div>
+<!-- Usual Commute Peak Hours & Heat Dot Timeline -->
+<div class="bg-surface-container-low rounded-xl p-3 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="p-2 rounded-lg bg-surface-container-highest text-primary">
+<span class="material-symbols-outlined text-[18px]">routine</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-telemetry text-[10px] text-on-surface-variant uppercase">Peak Commute Windows</span>
+<span class="font-metric-numeral text-body-md text-white font-semibold">8:15 AM <span class="text-on-surface-variant font-normal">&amp;</span> 6:20 PM</span>
+</div>
+</div>
+<!-- Timeline Heat Indicators -->
+<div class="flex items-center space-x-1.5 bg-surface-container-highest/80 px-2.5 py-1.5 rounded-full">
+<span class="w-2 h-2 rounded-full bg-surface-variant"></span>
+<span class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_6px_#00e5ff]"></span>
+<span class="w-2 h-2 rounded-full bg-surface-variant"></span>
+<span class="w-2 h-2 rounded-full bg-surface-variant"></span>
+<span class="w-2 h-2 rounded-full bg-secondary-container shadow-[0_0_6px_#01f5a0]"></span>
+<span class="w-2 h-2 rounded-full bg-surface-variant"></span>
+</div>
+</div>
+</section>
+<!-- 5. Environmental & Wallet Impact Matrix (4-Card Grid) -->
+<section class="w-full space-y-2">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-telemetry text-label-telemetry uppercase tracking-wider text-on-surface-variant">Impact Matrix</span>
+<span class="font-label-chip text-body-sm text-secondary-container font-semibold">Cumulative 30D</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Card 1: Rupee Savings -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex flex-col justify-between shadow-lg relative overflow-hidden">
+<div class="flex items-center justify-between mb-2">
+<span class="p-1.5 rounded-lg bg-secondary-container/15 text-secondary-container">
+<span class="material-symbols-outlined text-[18px]">currency_rupee</span>
+</span>
+<span class="font-label-chip text-[9px] bg-secondary-container/20 text-secondary-container font-bold px-1.5 py-0.5 rounded">
+            +32% YOY
+          </span>
+</div>
+<div>
+<div class="font-metric-numeral text-headline-sm text-white">₹4,650</div>
+<span class="font-label-chip text-[11px] text-on-surface-variant">Saved vs Petrol</span>
+</div>
+</div>
+<!-- Card 2: Fuel Avoided -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex flex-col justify-between shadow-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="p-1.5 rounded-lg bg-tertiary-container/15 text-tertiary-container">
+<span class="material-symbols-outlined text-[18px]">local_gas_station</span>
+</span>
+<span class="font-label-telemetry text-[9px] text-on-surface-variant uppercase">Unburnt</span>
+</div>
+<div>
+<div class="font-metric-numeral text-headline-sm text-white">41.5 <span class="text-body-sm font-label-telemetry text-on-surface-variant">L</span></div>
+<span class="font-label-chip text-[11px] text-on-surface-variant">Fuel Avoided</span>
+</div>
+</div>
+<!-- Card 3: Carbon Offset -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex flex-col justify-between shadow-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="p-1.5 rounded-lg bg-secondary-container/15 text-secondary-container">
+<span class="material-symbols-outlined text-[18px]">eco</span>
+</span>
+<span class="font-label-chip text-[9px] bg-secondary-container/20 text-secondary-container font-bold px-1.5 py-0.5 rounded">
+            Clean Air
+          </span>
+</div>
+<div>
+<div class="font-metric-numeral text-headline-sm text-secondary-container">96.2 <span class="text-body-sm font-label-telemetry text-secondary-container">kg</span></div>
+<span class="font-label-chip text-[11px] text-on-surface-variant">CO2 Offset</span>
+</div>
+</div>
+<!-- Card 4: Service & Hardware Health -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex flex-col justify-between shadow-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="p-1.5 rounded-lg bg-primary-container/15 text-primary-container">
+<span class="material-symbols-outlined text-[18px]">build</span>
+</span>
+<span class="font-label-telemetry text-[9px] text-primary uppercase font-bold">92% Life</span>
+</div>
+<div>
+<div class="font-metric-numeral text-headline-sm text-white">2,410 <span class="text-body-sm font-label-telemetry text-on-surface-variant">km</span></div>
+<span class="font-label-chip text-[11px] text-on-surface-variant">To Next Service</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. AI Predictive Recommendations (Actionable, Minimal Text) -->
+<section class="w-full space-y-2.5 pb-2">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-primary-container text-[18px]">psychology</span>
+<span class="font-label-telemetry text-label-telemetry uppercase tracking-wider text-on-surface-variant">AI Dynamic Insights</span>
+</div>
+<span class="font-label-telemetry text-[10px] text-primary">Live Optimization</span>
+</div>
+<!-- Recommendation Card 1: Highway Cruising Speed -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex items-start space-x-3.5 shadow-md border-0">
+<div class="p-2.5 rounded-xl bg-primary-container/15 text-primary-container flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[22px]">navigation</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-telemetry text-body-sm font-bold text-white uppercase tracking-tight">Optimal Highway Speed</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary-container font-label-chip text-[9px] font-bold">
+            +12% RANGE
+          </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-snug">
+          Maintain <span class="text-white font-semibold">42 km/h</span> on Outer Ring Road to reduce aerodynamic drag surge.
+        </p>
+</div>
+</div>
+<!-- Recommendation Card 2: Smart Battery Longevity Advice -->
+<div class="bg-surface-container rounded-2xl p-3.5 flex items-start space-x-3.5 shadow-md border-0">
+<div class="p-2.5 rounded-xl bg-secondary-container/15 text-secondary-container flex-shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[22px]">battery_charging_full</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-telemetry text-body-sm font-bold text-white uppercase tracking-tight">Smart Charge Health</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary-container font-label-chip text-[9px] font-bold">
+            CELL GUARD
+          </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-snug">
+          Cap charging at <span class="text-white font-semibold">80%</span> before 8:00 AM to preserve battery chemistry life.
+        </p>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Simple micro-interaction for segmented filter pills
+  (function() {
+    const filterButtons = document.querySelectorAll('section button.rounded-full');
+    filterButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        filterButtons.forEach(btn => {
+          btn.className = "flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm text-on-surface-variant hover:text-on-surface transition-colors";
+        });
+        this.className = "flex-1 py-1.5 rounded-full text-center font-label-chip text-body-sm transition-all duration-300 bg-primary-container text-on-primary-container font-bold shadow-glow-cyan";
+      });
+    });
+  })();
+</script>
+</main>
+<!-- BEGIN: Docked Bottom Automotive Navigation -->
+<nav class="fixed bottom-0 max-w-[425px] w-full bg-surface-container-lowest/90 backdrop-blur-xl px-4 pt-2 pb-safe z-50" data-active-classes="text-primary-container font-bold" data-purpose="bottom-navigation-bar">
+<!-- Live Status Sub-pill -->
+
+<!-- Navigation Tab Icons -->
+<div class="flex items-center justify-around pb-1"><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant hover:text-on-surface transition-colors" data-path="home" data-purpose="nav-tab-home" href="#home"><div class="p-1 flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div><span class="text-[10px] font-label-chip mt-0.5">Home</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant hover:text-on-surface transition-colors" data-path="trips" data-purpose="nav-tab-trips" href="#trips"><div class="p-1 flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg></div><span class="text-[10px] font-label-chip mt-0.5">Trips</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-primary-container font-bold" data-path="insights" data-purpose="nav-tab-insights" href="#insights"><div class="p-1.5 rounded-xl bg-primary-container/15 shadow-glow-cyan flex items-center justify-center"><svg class="w-5 h-5 text-primary-container" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></div><span class="text-[10px] font-label-chip font-bold text-primary-container neon-text-glow mt-0.5">Insights</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant hover:text-on-surface transition-colors" data-path="scooter" data-purpose="nav-tab-scooter" href="#scooter"><div class="p-1 flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="5" cy="18" r="3"></circle><circle cx="19" cy="18" r="3"></circle><path d="M17 18h-4a2 2 0 0 1-2-2V7h3"></path><path d="M12 7l4 4"></path></svg></div><span class="text-[10px] font-label-chip mt-0.5">Scooter</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant hover:text-on-surface transition-colors" data-path="settings" data-purpose="nav-tab-settings" href="#settings"><div class="p-1 flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></div><span class="text-[10px] font-label-chip mt-0.5">Settings</span></a></div>
+</nav>
+<!-- END: Docked Bottom Automotive Navigation -->
+</div>
+
+
+</body></html>

@@ -1,0 +1,730 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>Nexus Pulse EV Dashboard</title>
+<!-- Tailwind CSS v3 CDN with Forms and Container Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts for High-Tech EV Automotive Typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Custom Tailwind Config for EV Cyber Neon Theme -->
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#070a0e',
+            cyberDark: '#0b1017',
+            cardBg: '#101722',
+            cardBorder: 'rgba(0, 245, 212, 0.14)',
+            neonCyan: '#00f5d4',
+            neonTeal: '#00b4d8',
+            electricBlue: '#0077b6',
+            neonGreen: '#10b981',
+            ecoLime: '#84cc16'
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace']
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 20px -3px rgba(0, 245, 212, 0.35)',
+            'glow-green': '0 0 16px -2px rgba(16, 185, 129, 0.4)',
+            'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="custom-theme">
+    body {
+      background-color: #05080c;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .neon-text-glow {
+      text-shadow: 0 0 12px rgba(0, 245, 212, 0.45);
+    }
+    .glass-card {
+      background: linear-gradient(180deg, rgba(16, 23, 34, 0.85) 0%, rgba(11, 16, 23, 0.95) 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 245, 212, 0.12);
+    }
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    /* Hide scrollbars on modern mobile browsers while keeping scrollable */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Modal sheet animations */
+    #trip-history-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #trip-history-modal.active #modal-sheet-container {
+      transform: translateY(0);
+    }
+  </style>
+<!-- END: Custom Styles -->
+<meta content="mobile_tab" name="shell-type"><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex justify-center min-h-screen selection:bg-neonCyan selection:text-black">
+<!-- Mobile App Wrapper -->
+<div class="w-full max-w-[425px] min-h-screen flex flex-col bg-[#070a0e] shadow-2xl relative pb-28 border-x border-cyan-950/30 overflow-x-hidden">
+<!-- BEGIN: iOS Status Bar -->
+<header class="w-full px-6 pt-3 pb-2 flex items-center justify-between text-xs font-semibold tracking-wider text-slate-300 z-30" data-purpose="ios-status-bar">
+<span>7:09</span>
+<div class="flex items-center space-x-2">
+<!-- Bluetooth Icon -->
+<svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="m7 7 10 10-5 5V2l5 5L7 17" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<!-- VoLTE Icon -->
+<span class="text-[10px] font-bold px-1 bg-slate-800 rounded border border-slate-700">VoLTE</span>
+<!-- Cellular Signal -->
+<div class="flex items-end space-x-0.5 h-3">
+<div class="w-0.5 h-1.5 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-2 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-2.5 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-3 bg-slate-300 rounded-sm"></div>
+</div>
+<!-- Battery 82% -->
+<div class="flex items-center space-x-1 pl-1">
+<span class="text-[11px] font-mono">82%</span>
+<div class="w-5 h-2.5 border border-slate-300 rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-neonCyan w-4/5 rounded-2xs"></div>
+</div>
+</div>
+</div>
+</header>
+<!-- END: iOS Status Bar -->
+<!-- BEGIN: Top Navigation Header -->
+<section class="px-5 py-2 flex items-center justify-between z-20" data-purpose="app-header">
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<h1 class="text-xl font-mono font-extrabold tracking-tight text-white uppercase flex items-center gap-1.5">
+            Nexus <span class="text-neonCyan neon-text-glow">Pulse</span>
+</h1>
+<span class="text-[9px] font-bold bg-cyan-950/80 text-neonCyan border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-mono">EX v4.2</span>
+</div>
+<div class="flex items-center space-x-1.5 text-xs text-slate-400 mt-0.5">
+<span class="font-mono text-slate-300">NEX_B9ABF</span>
+<span class="text-slate-600">•</span>
+<span class="flex items-center text-emerald-400 text-[11px]">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span>
+            Cloud Synced
+          </span>
+</div>
+</div>
+<!-- Live Bluetooth Status Pill -->
+<button class="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-glow-green active:scale-95 transition-transform" data-purpose="connection-badge">
+<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+<span>Connected</span>
+<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="m8.25 4.5 7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</section>
+<!-- END: Top Navigation Header -->
+<!-- Scrollable Main Content -->
+<main class="px-4 space-y-4 pt-1 z-10 flex-1">
+<!-- Timeframe Pills -->
+<section class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5">
+<button class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-neonCyan text-black shadow-glow-cyan shrink-0">This Month</button>
+<button class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 shrink-0 transition-colors">This Week</button>
+<button class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 shrink-0 transition-colors">All Time</button>
+</section>
+<!-- Hero Summary Card with Background Image -->
+<section class="relative rounded-3xl overflow-hidden border border-cyan-500/20 shadow-2xl bg-black">
+<div class="relative w-full p-4">
+<img alt="Ampere Nexus Electric Scooter" class="absolute inset-0 w-full h-full object-cover object-center opacity-45" src="https://lh3.googleusercontent.com/aida/ALJJyrCPc3OHx93fHFNV_UL3Wmrxmcqzz-kNJvSm6x8agzQEce1oAFJLRJtZQJG62hsB_m5aMlI-TtK82kSLFZzv2C55gBYV3BCdE73_WdooQirlM_nNL_BO8PEoDP5etpjPiw_IANrKIv_XFcwVAel8_golDWpxek_TH-RUAE-D56-k5i3gAQaJjf__w2S0aqWd6OTymXgstDLhLroLpZJSP8dcJxll3XbM3fqkT5fYx5GCcQ">
+<div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/75 to-black/60"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-obsidian/80 via-transparent to-obsidian/70"></div>
+<div class="relative z-10 flex flex-col justify-between space-y-4">
+<div class="flex items-center justify-between">
+<span class="glass-pill px-2.5 py-1 rounded-full text-[11px] font-semibold text-slate-200 tracking-wide">November Summary</span>
+<span class="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] font-mono font-semibold flex items-center space-x-1">
+<span>+2.9 kWh Regen</span>
+</span>
+</div>
+<div class="grid grid-cols-3 gap-2 pt-1">
+<div class="glass-card rounded-2xl p-2.5 text-center">
+<span class="text-[10px] uppercase tracking-wider text-slate-400 block">Distance</span>
+<span class="text-lg font-extrabold font-mono text-white leading-tight">412.8</span>
+<span class="text-[10px] font-bold text-neonCyan ml-0.5">km</span>
+</div>
+<div class="glass-card rounded-2xl p-2.5 text-center">
+<span class="text-[10px] uppercase tracking-wider text-slate-400 block">Trips</span>
+<span class="text-lg font-extrabold font-mono text-white leading-tight">34</span>
+</div>
+<div class="glass-card rounded-2xl p-2.5 text-center">
+<span class="text-[10px] uppercase tracking-wider text-slate-400 block">Saved</span>
+<span class="text-lg font-extrabold font-mono text-emerald-400 leading-tight">₹3,840</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Weekly Cadence Bar Chart Card (Matching Dashboard 'Your Riding') -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h2 class="text-sm font-semibold tracking-wide text-white">Weekly Cadence</h2>
+</div>
+<span class="text-[11px] font-mono text-neonCyan font-semibold">Peak: 42.4 km</span>
+</div>
+<div class="flex items-end justify-between space-x-2 pt-2">
+<!-- Mon -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">18.2</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 43%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1.5">M</span>
+</div>
+<!-- Tue -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">24.0</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 57%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1.5">T</span>
+</div>
+<!-- Wed -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">14.8</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 35%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1.5">W</span>
+</div>
+<!-- Thu -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">29.1</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 69%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1.5">T</span>
+</div>
+<!-- Fri -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">22.4</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 53%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1.5">F</span>
+</div>
+<!-- Sat (Peak) -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-neonCyan font-bold mb-1">42.4</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-500 to-neonCyan rounded-t-md shadow-glow-cyan" style="height: 100%;"></div>
+</div>
+<span class="text-[10px] text-neonCyan font-bold mt-1.5">S</span>
+</div>
+<!-- Sun -->
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-emerald-300 font-semibold mb-1">16.0</span>
+<div class="w-full bg-slate-800/70 h-24 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-cyan-600 to-emerald-400 rounded-t-md" style="height: 38%;"></div>
+</div>
+<span class="text-[10px] text-slate-300 font-medium mt-1.5">S</span>
+</div>
+</div>
+</section>
+<!-- Latest Ride Card (Continuous wave graph omitted per telemetry storage spec; discrete summary stats retained) -->
+<section class="glass-card rounded-3xl p-4 shadow-xl space-y-3">
+<div class="flex items-center justify-between">
+<div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Latest Ride • 6:15 PM</span>
+<h3 class="text-sm font-bold text-white mt-0.5">Evening Return Commute</h3>
+</div>
+<span class="text-[10px] font-semibold text-neonCyan bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">Eco Mode</span>
+</div>
+<!-- Discrete Telemetry Snapshot Grid -->
+<div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
+<div class="bg-obsidian/80 border border-slate-800 px-3 py-2 rounded-xl flex items-center justify-between">
+<span class="text-slate-400">Avg Speed</span>
+<span class="text-slate-200 font-semibold">28 km/h</span>
+</div>
+<div class="bg-obsidian/80 border border-emerald-500/30 px-3 py-2 rounded-xl flex items-center justify-between">
+<span class="text-slate-400">Efficiency</span>
+<span class="text-emerald-400 font-semibold">1.95 km/%</span>
+</div>
+</div>
+<!-- 3 Concise Stat Pills -->
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="bg-obsidian/70 py-2 px-2 rounded-2xl border border-slate-800">
+<span class="text-[10px] uppercase text-slate-400 block">Distance</span>
+<span class="text-xs font-bold font-mono text-white">12.6 km</span>
+</div>
+<div class="bg-obsidian/70 py-2 px-2 rounded-2xl border border-slate-800">
+<span class="text-[10px] uppercase text-slate-400 block">Duration</span>
+<span class="text-xs font-bold font-mono text-white">27 min</span>
+</div>
+<div class="bg-obsidian/70 py-2 px-2 rounded-2xl border border-slate-800">
+<span class="text-[10px] uppercase text-slate-400 block">Battery</span>
+<span class="text-xs font-bold font-mono text-neonCyan">-7%</span>
+</div>
+</div>
+</section>
+<!-- Clean Recent Journeys List (AI Auto-Named Titles from Server-Side AI) -->
+<section class="space-y-2.5">
+<div class="flex items-center justify-between px-1">
+<h2 class="text-sm font-semibold text-white tracking-wide">Recent Journeys</h2>
+<button class="text-[11px] font-semibold text-neonCyan hover:underline" onclick="openTripHistoryModal()">View All ›</button>
+</div>
+<div class="space-y-2">
+<!-- Row 1 -->
+<div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan shrink-0">
+<span class="material-symbols-outlined text-base">navigation</span>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<h4 class="text-xs font-bold text-white leading-tight">Morning Office Sprint</h4>
+<span class="text-[9px] font-bold bg-cyan-950/90 text-neonCyan border border-cyan-500/40 px-1 py-0.2 rounded font-mono">⚡ AI Auto</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">8:30 AM • 21m</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-extrabold font-mono text-white block leading-tight">9.4 km</span>
+<span class="text-[10px] font-mono text-emerald-400">Eco • 1.88 km/%</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+<span class="material-symbols-outlined text-base">route</span>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<h4 class="text-xs font-bold text-white leading-tight">Weekend Highway Cruise</h4>
+<span class="text-[9px] font-bold bg-cyan-950/90 text-neonCyan border border-cyan-500/40 px-1 py-0.2 rounded font-mono">⚡ AI Auto</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">4:10 PM • 48m</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-extrabold font-mono text-white block leading-tight">28.5 km</span>
+<span class="text-[10px] font-mono text-neonCyan">City • 2.02 km/%</span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0">
+<span class="material-symbols-outlined text-base">storefront</span>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<h4 class="text-xs font-bold text-white leading-tight">Quick City Errand</h4>
+<span class="text-[9px] font-bold bg-cyan-950/90 text-neonCyan border border-cyan-500/40 px-1 py-0.2 rounded font-mono">⚡ AI Auto</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">11:20 AM • 12m</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-extrabold font-mono text-white block leading-tight">4.2 km</span>
+<span class="text-[10px] font-mono text-emerald-400">Eco • 1.76 km/%</span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+<span class="material-symbols-outlined text-base">nightlife</span>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<h4 class="text-xs font-bold text-white leading-tight">Night Food Run</h4>
+<span class="text-[9px] font-bold bg-cyan-950/90 text-neonCyan border border-cyan-500/40 px-1 py-0.2 rounded font-mono">⚡ AI Auto</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">9:45 PM • 18m</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-sm font-extrabold font-mono text-white block leading-tight">7.8 km</span>
+<span class="text-[10px] font-mono text-amber-300">Sport • 1.84 km/%</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BEGIN: Docked Bottom Automotive Navigation -->
+<nav class="fixed bottom-0 max-w-[425px] w-full bg-obsidian/90 backdrop-blur-xl border-t border-cyan-500/20 px-4 py-2.5 z-40" data-purpose="bottom-navigation-bar"><!-- Live Status Sub-pill -->
+<div class="flex items-center justify-between px-3 py-1 mb-1.5 bg-cardBg/80 rounded-xl border border-slate-800 text-[10px]">
+<div class="flex items-center space-x-1.5 text-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span>Connected to Scooter • 100% Sync</span>
+</div>
+<span class="font-mono text-neonCyan font-medium">NEXUS PULSE</span>
+</div>
+<!-- Navigation Tab Icons -->
+<div class="flex items-center justify-around">
+<!-- Home -->
+<a class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition-colors" data-purpose="nav-tab-home" href="#home">
+<div class="p-1">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium mt-1">Home</span>
+</a>
+<!-- Trips (Active) -->
+<a class="flex flex-col items-center text-neonCyan group cursor-pointer" data-purpose="nav-tab-trips" href="#trips" onclick="openTripHistoryModal(); return false;">
+<div class="p-1 rounded-xl bg-neonCyan/15 border border-neonCyan/40 shadow-glow-cyan">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.284a2.25 2.25 0 0 0-2.006 0L2.622 5.72C2.24 5.91 2 6.3 2 6.726v11.998c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497a2.25 2.25 0 0 0 2.006 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[10px] font-bold mt-1 text-neonCyan">Trips</span>
+</a>
+<!-- Insights -->
+<a class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition-colors" data-purpose="nav-tab-insights" href="#insights">
+<div class="p-1">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium mt-1">Insights</span>
+</a>
+<!-- Scooter -->
+<a class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition-colors" data-purpose="nav-tab-scooter" href="#scooter">
+<div class="p-1">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="6" cy="18" r="3"></circle>
+<circle cx="18" cy="18" r="3"></circle>
+<path d="M6 15h11l2-7H9" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium mt-1">Scooter</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition-colors" data-purpose="nav-tab-settings" href="#settings">
+<div class="p-1">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-[10px] font-medium mt-1">Settings</span>
+</a>
+</div></nav>
+<!-- END: Docked Bottom Automotive Navigation -->
+<!-- BEGIN: Trip History & Distance Breakdown Modal Bottom Sheet -->
+<div class="fixed inset-0 z-50 flex items-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" id="trip-history-modal">
+<!-- Backdrop Blur Overlay -->
+<div class="absolute inset-0 bg-black/75 backdrop-blur-md" onclick="closeTripHistoryModal()"></div>
+<!-- Bottom Sheet Container (Restricted to Mobile Container max-width) -->
+<div class="relative w-full max-w-[425px] max-h-[777px] bg-[#0b1017] rounded-t-[32px] border-t border-x border-cyan-500/30 shadow-[0_-10px_35px_rgba(0,0,0,0.85)] flex flex-col transform translate-y-full transition-transform duration-300 ease-out z-10 overflow-hidden" id="modal-sheet-container">
+<!-- Top Drag Handle & Quick Close Bar -->
+<div class="pt-3 pb-2 px-6 flex flex-col items-center select-none cursor-grab active:cursor-grabbing" onclick="closeTripHistoryModal()">
+<div class="w-12 h-1.5 bg-slate-700/80 hover:bg-neonCyan/70 transition-colors rounded-full mb-1"></div>
+</div>
+<!-- Sheet Header -->
+<div class="px-5 pb-3 flex items-start justify-between border-b border-slate-800/80">
+<div>
+<div class="flex items-center space-x-2">
+<div class="w-6 h-6 rounded-lg bg-neonCyan/15 border border-neonCyan/40 flex items-center justify-center text-neonCyan">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h3 class="text-base font-bold font-mono tracking-tight text-white uppercase">Trip History &amp; Distance</h3>
+</div>
+<p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+<span class="font-mono font-semibold text-neonCyan">142 Trips</span>
+<span>•</span>
+<span class="font-mono text-slate-300">1,842 km recorded</span>
+<span>•</span>
+<span class="text-emerald-400 font-medium">99.4% Telemetry</span>
+</p>
+</div>
+<!-- Close Button -->
+<button aria-label="Close trip history modal" class="w-8 h-8 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors active:scale-90" onclick="closeTripHistoryModal()">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+<path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Filter Pills & Quick Actions -->
+<div class="px-5 py-3 bg-[#0d141f]/70 border-b border-slate-800/70 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+<div class="flex items-center space-x-1.5">
+<button class="trip-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-neonCyan text-black shadow-glow-cyan">All</button>
+<button class="trip-filter-btn px-3 py-1 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60">Today</button>
+<button class="trip-filter-btn px-3 py-1 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60">This Week</button>
+<button class="trip-filter-btn px-3 py-1 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60">This Month</button>
+</div>
+<button class="p-1.5 text-xs text-slate-300 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700/80 flex items-center space-x-1 shrink-0" title="Filter by date range">
+<svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 9v7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Scrollable Trip List -->
+<div class="px-4 py-3 space-y-2.5 overflow-y-auto max-h-[424px] no-scrollbar">
+<!-- Trip Card 1 (Today Evening) -->
+<div class="p-3 bg-cardBg/90 border border-slate-800 hover:border-cyan-500/40 rounded-2xl transition-all shadow-md">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-7 h-7 rounded-xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan text-xs">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</span>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-xs font-bold text-white tracking-wide">Office Commute Return</h4>
+<span class="text-[9px] font-semibold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/30">City Mode</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">Today • 5:40 PM – 6:02 PM</p>
+</div>
+</div>
+<!-- Big Distance -->
+<div class="text-right">
+<span class="text-base font-extrabold font-mono text-neonCyan leading-none">9.4</span>
+<span class="text-[10px] font-bold text-slate-400">km</span>
+</div>
+</div>
+<!-- Telemetry Details Strip -->
+<div class="mt-2.5 pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-[10px]">
+<div>
+<span class="text-slate-400 block">Duration &amp; Speed</span>
+<span class="font-mono text-slate-200 font-semibold">22 min • 26 km/h</span>
+</div>
+<div>
+<span class="text-slate-400 block">Efficiency</span>
+<span class="font-mono text-neonCyan font-bold">1.88 km/%</span>
+</div>
+<div class="text-right">
+<span class="text-slate-400 block">Regen Recovered</span>
+<span class="font-mono text-emerald-400 font-semibold">+0.12 kWh</span>
+</div>
+</div>
+</div>
+<!-- Trip Card 2 (Today Morning) -->
+<div class="p-3 bg-cardBg/90 border border-slate-800 hover:border-cyan-500/40 rounded-2xl transition-all shadow-md">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-7 h-7 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 text-xs">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</span>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-xs font-bold text-white tracking-wide">Morning Office Ride</h4>
+<span class="text-[9px] font-semibold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-500/30">Eco Mode</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">Today • 8:15 AM – 8:39 AM</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-base font-extrabold font-mono text-white leading-none">9.2</span>
+<span class="text-[10px] font-bold text-slate-400">km</span>
+</div>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-[10px]">
+<div>
+<span class="text-slate-400 block">Duration &amp; Speed</span>
+<span class="font-mono text-slate-200 font-semibold">24 min • 23 km/h</span>
+</div>
+<div>
+<span class="text-slate-400 block">Efficiency</span>
+<span class="font-mono text-neonCyan font-bold">1.94 km/%</span>
+</div>
+<div class="text-right">
+<span class="text-slate-400 block">Regen Recovered</span>
+<span class="font-mono text-emerald-400 font-semibold">+0.15 kWh</span>
+</div>
+</div>
+</div>
+<!-- Trip Card 3 (Yesterday Evening) -->
+<div class="p-3 bg-cardBg/90 border border-slate-800 hover:border-cyan-500/40 rounded-2xl transition-all shadow-md">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-300 text-xs">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.614A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.015a2.993 2.993 0 0 0 2.25 1.015c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</span>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-xs font-bold text-white tracking-wide">Weekend Market Quick Run</h4>
+<span class="text-[9px] font-semibold text-purple-300 bg-purple-950/80 px-1.5 py-0.2 rounded border border-purple-500/30">Custom</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">Yesterday • 7:20 PM – 7:55 PM</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-base font-extrabold font-mono text-neonCyan leading-none">14.8</span>
+<span class="text-[10px] font-bold text-slate-400">km</span>
+</div>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-[10px]">
+<div>
+<span class="text-slate-400 block">Duration &amp; Speed</span>
+<span class="font-mono text-slate-200 font-semibold">35 min • 28 km/h</span>
+</div>
+<div>
+<span class="text-slate-400 block">Efficiency</span>
+<span class="font-mono text-neonCyan font-bold">1.75 km/%</span>
+</div>
+<div class="text-right">
+<span class="text-slate-400 block">Regen Recovered</span>
+<span class="font-mono text-emerald-400 font-semibold">+0.19 kWh</span>
+</div>
+</div>
+</div>
+<!-- Trip Card 4 (Friday Night) -->
+<div class="p-3 bg-cardBg/90 border border-slate-800 hover:border-cyan-500/40 rounded-2xl transition-all shadow-md">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-7 h-7 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="M12 7.5v4.5l3 1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</span>
+<div>
+<div class="flex items-center space-x-2">
+<h4 class="text-xs font-bold text-white tracking-wide">Metro Station Drop</h4>
+<span class="text-[9px] font-semibold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/30">City Mode</span>
+</div>
+<p class="text-[10px] text-slate-400 font-mono mt-0.5">Fri • 6:00 PM – 6:18 PM</p>
+</div>
+</div>
+<div class="text-right">
+<span class="text-base font-extrabold font-mono text-white leading-none">7.0</span>
+<span class="text-[10px] font-bold text-slate-400">km</span>
+</div>
+</div>
+<div class="mt-2.5 pt-2 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-[10px]">
+<div>
+<span class="text-slate-400 block">Duration &amp; Speed</span>
+<span class="font-mono text-slate-200 font-semibold">18 min • 25 km/h</span>
+</div>
+<div>
+<span class="text-slate-400 block">Efficiency</span>
+<span class="font-mono text-neonCyan font-bold">1.82 km/%</span>
+</div>
+<div class="text-right">
+<span class="text-slate-400 block">Regen Recovered</span>
+<span class="font-mono text-emerald-400 font-semibold">+0.09 kWh</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Summary Stats Strip & Export Bar -->
+<div class="p-4 bg-obsidian border-t border-slate-800/90 space-y-3">
+<!-- Mini Insights summary banner -->
+<div class="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-2">
+<span class="text-sm">⚡</span>
+<div>
+<p class="text-[11px] text-slate-200 font-medium">Weekly Peak: <strong class="text-neonCyan font-mono">1.94 km/%</strong></p>
+<p class="text-[10px] text-emerald-300">Regen Energy Saved: <strong>4.2 kWh</strong></p>
+</div>
+</div>
+<span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">4.8★ Eco Score</span>
+</div>
+<!-- Footer Buttons: Export / Close -->
+<div class="grid grid-cols-2 gap-2">
+<button class="py-2.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center space-x-1.5 active:scale-95 transition-transform" onclick="downloadTripSummary()">
+<svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span id="export-btn-label">Export CSV / GPX</span>
+</button>
+<button class="py-2.5 px-3 bg-neonCyan hover:bg-neonCyan/90 text-black font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-glow-cyan active:scale-95 transition-transform" onclick="closeTripHistoryModal()">
+<span>Done</span>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="m4.5 12.75 6 6 9-13.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- END: Trip History & Distance Breakdown Modal Bottom Sheet -->
+<!-- Vanilla JavaScript for Interactivity -->
+<script>
+  function openTripHistoryModal() {
+    const modal = document.getElementById('trip-history-modal');
+    if (modal) {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function closeTripHistoryModal() {
+    const modal = document.getElementById('trip-history-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Handle escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      closeTripHistoryModal();
+    }
+  });
+
+  // Filter pills interaction
+  document.querySelectorAll('.trip-filter-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.trip-filter-btn').forEach(btn => {
+        btn.className = 'trip-filter-btn px-3 py-1 rounded-full text-xs font-medium text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition-colors';
+      });
+      this.className = 'trip-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-neonCyan text-black shadow-glow-cyan transition-colors';
+    });
+  });
+
+  // Export action feedback
+  function downloadTripSummary() {
+    const label = document.getElementById('export-btn-label');
+    if (label) {
+      const origText = label.innerText;
+      label.innerText = 'Exporting 142 Trips...';
+      setTimeout(() => {
+        label.innerText = 'Downloaded CSV ✓';
+        setTimeout(() => {
+          label.innerText = origText;
+        }, 1800);
+      }, 700);
+    }
+  }
+</script>
+</div>
+
+
+</body></html>

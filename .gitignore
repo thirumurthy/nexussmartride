@@ -40,6 +40,8 @@ parse_btsnoop.py
 search_hasm.py
 search_strings.py
 tmp_search.py
+bugreport.zip
+*.zip
 .antigravity/
 .gemini/
 .artifacts/

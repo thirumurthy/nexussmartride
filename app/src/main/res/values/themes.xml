@@ -20,4 +20,15 @@
         <item name="android:fontFamily">@font/inter</item>
     </style>
 
+    <style name="CyberBottomSheetDialogTheme" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CyberBottomSheetModal</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:navigationBarColor">@color/surface_container_lowest</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="CyberBottomSheetModal" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
 </resources>

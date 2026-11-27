@@ -97,8 +97,51 @@ class ScooterRepository(private val dao: ScooterDao) {
         return if (dist in 0.0..300.0) dist else 0.0
     }
 
+    suspend fun getCurrentMonthDistance(): Double {
+        val currentMonthPrefix = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
+        val records = dao.getRecentDailyTravel()
+        val monthKm = records
+            .filter { it.date.startsWith(currentMonthPrefix) }
+            .sumOf { it.distanceKm }
+        return Math.round(monthKm * 10.0) / 10.0
+    }
+
+    suspend fun saveDailyTravel(date: String, distanceKm: Double, socConsumed: Int = 0) {
+        if (date.isBlank()) return
+        val existing = dao.getDailyTravel(date)
+        if (existing == null) {
+            dao.insertDailyTravel(
+                DailyTravelEntity(
+                    date = date,
+                    distanceKm = distanceKm,
+                    lastOdometer = 0.0,
+                    socConsumed = socConsumed
+                )
+            )
+        } else {
+            val finalSoc = if (socConsumed > 0) socConsumed else existing.socConsumed
+            val finalDist = maxOf(existing.distanceKm, distanceKm)
+            dao.insertDailyTravel(
+                existing.copy(distanceKm = finalDist, socConsumed = finalSoc)
+            )
+        }
+    }
+
     fun getAllDailyTravel() = dao.getAllDailyTravel()
-    
+    suspend fun getRecentDailyTravel(): List<DailyTravelEntity> = dao.getRecentDailyTravel()
+
+    suspend fun getLogsSince(since: Long) = dao.getLogsSince(since)
+    suspend fun getAllLogs(): List<ScooterLogEntity> = dao.getAllLogs()
+
+    // ─── Intelligent Journeys ──────────────────────────────────────────────────
+    fun getRecentJourneys(limit: Int = 10): kotlinx.coroutines.flow.Flow<List<JourneyEntity>> = dao.getRecentJourneys(limit)
+    suspend fun getRecentJourneysList(limit: Int = 10): List<JourneyEntity> = dao.getRecentJourneysList(limit)
+    suspend fun saveJourney(journey: JourneyEntity): Long = dao.insertJourney(journey)
+    suspend fun saveJourneys(journeys: List<JourneyEntity>) = dao.insertJourneys(journeys)
+    suspend fun getJourneyCount(): Int = dao.getJourneyCount()
+    suspend fun deleteJourney(id: Long) = dao.deleteJourney(id)
+    suspend fun deleteAllJourneys() = dao.deleteAllJourneys()
+
     companion object {
         @Volatile
         private var INSTANCE: ScooterRepository? = null

@@ -91,6 +91,7 @@ class BleService : LifecycleService() {
 
     @Volatile private var isNavigating = false
     val isClusterNavigating: Boolean get() = isNavigating
+    val isClusterConnected: Boolean get() = isConnected
     @Volatile private var isMirroring = false
     @Volatile private var hotspotSsid: String? = null
     @Volatile private var hotspotPwd: String? = null

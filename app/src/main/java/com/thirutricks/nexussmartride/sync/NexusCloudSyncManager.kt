@@ -8,6 +8,7 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.util.Log
 import com.thirutricks.nexussmartride.ScooterData
+import com.thirutricks.nexussmartride.data.MaintenanceRepository
 import com.thirutricks.nexussmartride.data.PendingSyncEntity
 import com.thirutricks.nexussmartride.data.ScooterDatabase
 import kotlinx.coroutines.*
@@ -125,17 +126,87 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
     }
 
     /**
-     * Resolves the permanent scooter device ID:
-     * Uses the saved Bluetooth MAC address (which the server securely salts & hashes with SHA-256).
+     * Resolves the active scooter device ID dynamically:
+     * 1. User-configured custom scooter ID in Cloud Settings (if set).
+     * 2. Paired scooter Bluetooth MAC address (which the server securely salts & hashes with SHA-256).
+     * 3. Paired scooter Bluetooth device name.
+     * 4. Persistent unique client installation identifier (never a shared collision).
      */
-    private fun resolveDeviceId(explicit: String?): String {
-        if (!explicit.isNullOrBlank()) return explicit
+    fun getEffectiveDeviceId(): String {
+        val customId = prefs.getString("custom_device_id", null)?.trim()
+        if (!customId.isNullOrBlank()) return customId
+
         val mainPrefs = context.getSharedPreferences("nexus_prefs", Context.MODE_PRIVATE)
-        val savedAddr = mainPrefs.getString("device_address", null)
+        val savedAddr = mainPrefs.getString("device_address", null)?.trim()
         if (!savedAddr.isNullOrBlank()) return savedAddr
-        val savedName = mainPrefs.getString("device_name", null)
+
+        val savedName = mainPrefs.getString("device_name", null)?.trim()
         if (!savedName.isNullOrBlank()) return savedName
-        return "NEXUS_DEFAULT_SCOOTER"
+
+        var clientFallback = prefs.getString("nexus_client_uuid", null)
+        if (clientFallback.isNullOrBlank()) {
+            val androidId = try {
+                android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+            } catch (e: Exception) { null }
+            val suffix = if (!androidId.isNullOrBlank() && androidId.length >= 6) {
+                androidId.takeLast(6).uppercase()
+            } else {
+                java.util.UUID.randomUUID().toString().take(6).uppercase()
+            }
+            clientFallback = "NEXUS_DEV_$suffix"
+            prefs.edit().putString("nexus_client_uuid", clientFallback).apply()
+        }
+        return clientFallback
+    }
+
+    fun setCustomDeviceId(id: String?) {
+        val clean = id?.trim()?.takeIf { it.isNotBlank() }
+        if (clean != null) {
+            prefs.edit().putString("custom_device_id", clean).apply()
+        } else {
+            prefs.edit().remove("custom_device_id").apply()
+        }
+        clearDeviceCache()
+    }
+
+    fun getCustomDeviceId(): String? {
+        return prefs.getString("custom_device_id", null)
+    }
+
+    fun clearDeviceCache() {
+        prefs.edit()
+            .remove("cached_device_id")
+            .remove("cached_last_sync")
+            .remove("cached_money_saved")
+            .remove("cached_petrol_saved")
+            .remove("cached_co2_saved")
+            .remove("cached_km_service")
+            .remove("cached_next_service")
+            .remove("cached_efficiency")
+            .remove("cached_ai_tip")
+            .remove("cached_eco_score")
+            .remove("cached_fleet_rank")
+            .remove("cached_today_distance")
+            .remove("cached_today_avg_speed")
+            .remove("cached_today_ride_time")
+            .remove("cached_today_soc_consumed")
+            .remove("cached_today_energy_kwh")
+            .remove("cached_yesterday_distance")
+            .remove("cached_yesterday_soc_consumed")
+            .remove("cached_yesterday_energy_kwh")
+            .remove("cached_recommendations")
+            .remove("cached_maintenance_json")
+            .apply()
+        _insights.value = ServerInsights(deviceId = getEffectiveDeviceId())
+    }
+
+    /**
+     * Resolves the active scooter device ID:
+     * Uses explicit address if provided, else resolves through getEffectiveDeviceId().
+     */
+    fun resolveDeviceId(explicit: String?): String {
+        if (!explicit.isNullOrBlank()) return explicit
+        return getEffectiveDeviceId()
     }
 
     /**
@@ -345,12 +416,13 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
     }
 
     /**
-     * Fetches current cloud insights for the given scooter ID (e.g. on fresh install or app launch).
+     * Fetches current cloud insights for the given scooter ID (or active effective ID if omitted).
      */
-    suspend fun fetchInsights(deviceId: String): Boolean {
+    suspend fun fetchInsights(deviceId: String? = null): Boolean {
         if (!isOnline()) return false
+        val id = resolveDeviceId(deviceId)
         val encodedId = withContext(Dispatchers.IO) {
-            try { URLEncoder.encode(deviceId, "UTF-8") } catch (e: Exception) { deviceId }
+            try { URLEncoder.encode(id, "UTF-8") } catch (e: Exception) { id }
         }
         val response = executeGet("/api/scooter/$encodedId/insights")
         return if (response != null) {
@@ -363,6 +435,7 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
         try {
             val deviceId = json.optString("device_id", "")
             val daily = json.optJSONObject("daily_usage")
+            val yesterdayObj = json.optJSONObject("yesterday_usage")
             val monthly = json.optJSONObject("monthly_usage")
             val hero = json.optJSONObject("hero_telemetry")
             val savings = json.optJSONObject("ownership_savings")
@@ -371,6 +444,7 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
             val battery = json.optJSONObject("battery_matrix")
             val vState = json.optJSONObject("vehicle_state")
             val ins = json.optJSONObject("insights")
+            val maintenanceJson = json.optJSONObject("maintenance")
 
             // Parse recommendations array if present
             val recsList = mutableListOf<AiRecommendationItem>()
@@ -401,60 +475,127 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
                 )
             }
 
+            val journeysList = mutableListOf<ServerJourneyItem>()
+            val journeysJson = json.optJSONArray("recent_trips")
+                ?: json.optJSONArray("recent_journeys")
+                ?: ins?.optJSONArray("recent_trips")
+                ?: ins?.optJSONArray("recent_journeys")
+
+            if (journeysJson != null && journeysJson.length() > 0) {
+                for (i in 0 until journeysJson.length()) {
+                    val jObj = journeysJson.optJSONObject(i) ?: continue
+                    val startMs = try {
+                        val s = jObj.optString("start_time", "")
+                        if (s.isNotBlank()) java.time.Instant.parse(s).toEpochMilli() else 0L
+                    } catch (e: Exception) { 0L }
+                    val endMs = try {
+                        val e = jObj.optString("end_time", "")
+                        if (e.isNotBlank()) java.time.Instant.parse(e).toEpochMilli() else 0L
+                    } catch (e: Exception) { 0L }
+
+                    journeysList.add(
+                        ServerJourneyItem(
+                            id = jObj.optString("trip_id", jObj.optString("id", "j_$i")),
+                            title = jObj.optString("title", "Ride Session"),
+                            routeSummary = jObj.optString("session_summary", jObj.optString("route_summary", "")),
+                            distanceKm = jObj.optDouble("distance_km", 0.0),
+                            durationMins = jObj.optInt("duration_mins", 0),
+                            avgSpeedKmh = jObj.optDouble("avg_speed_kmh", 0.0),
+                            maxSpeedKmh = jObj.optInt("top_speed_kmh", jObj.optInt("max_speed_kmh", 50)),
+                            startSoc = jObj.optInt("start_soc", 80),
+                            endSoc = jObj.optInt("end_soc", 70),
+                            ridingMode = jObj.optString("riding_mode", "City"),
+                            efficiencyKmPerSoc = jObj.optDouble("efficiency_km_per_pct", jObj.optDouble("efficiency_km_per_soc", 1.90)),
+                            energyConsumedKwh = jObj.optDouble("energy_consumed_kwh", 0.5),
+                            regenKwh = jObj.optDouble("regen_recaptured_kwh", 0.08),
+                            moneySavedInr = jObj.optInt("money_saved_inr", 20),
+                            co2SavedKg = jObj.optDouble("co2_saved_kg", 0.5),
+                            aiTag = jObj.optString("tag", jObj.optString("ai_tag", "COMMUTE")),
+                            timestampFormatted = jObj.optString("session_summary", ""),
+                            startTimeMs = startMs,
+                            endTimeMs = endMs
+                        )
+                    )
+                }
+            }
+
             val speedZones = aiCoach?.optJSONObject("speed_zones")
+
+            val parsedOdo = ins?.optDouble("odometer_km", 0.0) ?: 0.0
+            val effectiveOdo = if (parsedOdo > 0.0) parsedOdo else prefs.getFloat("last_known_odometer", 0f).toDouble()
+            val maintenanceReport = if (maintenanceJson != null) {
+                MaintenanceRepository.parseFromJson(maintenanceJson, effectiveOdo)
+            } else {
+                MaintenanceRepository.buildLocalReport(effectiveOdo)
+            }
 
             val newInsights = ServerInsights(
                 deviceId            = deviceId,
 
                 // Hero Telemetry
-                todayDistanceKm     = hero?.optDouble("distance_today_km", daily?.optDouble("distance_km", 18.6) ?: 18.6) ?: 18.6,
-                todayAvgSpeedKmh    = hero?.optDouble("avg_speed_kmh", 24.0) ?: 24.0,
-                todayRideTimeMins   = hero?.optInt("ride_time_mins", 38) ?: 38,
-                todaySocConsumed    = hero?.optInt("battery_used_pct", daily?.optInt("soc_consumed", 10) ?: 10) ?: 10,
-                vsYesterdayPct      = hero?.optInt("vs_yesterday_pct", 22) ?: 22,
+                todayDistanceKm     = hero?.optDouble("distance_today_km", daily?.optDouble("distance_km", 0.0) ?: 0.0) ?: 0.0,
+                todayAvgSpeedKmh    = hero?.optDouble("avg_speed_kmh", 0.0) ?: 0.0,
+                todayRideTimeMins   = hero?.optInt("ride_time_mins", 0) ?: 0,
+                todaySocConsumed    = hero?.optInt("battery_used_pct", daily?.optInt("soc_consumed", 0) ?: 0) ?: 0,
+                todayEnergyKwh      = hero?.optDouble("today_energy_kwh", daily?.optDouble("energy_kwh", 0.0) ?: 0.0) ?: 0.0,
+                yesterdayDistanceKm = yesterdayObj?.optDouble("distance_km", hero?.optDouble("yesterday_distance_km", 0.0) ?: 0.0) ?: 0.0,
+                yesterdaySocConsumed = yesterdayObj?.optInt("soc_consumed", hero?.optInt("yesterday_battery_used_pct", 0) ?: 0) ?: 0,
+                yesterdayEnergyKwh  = yesterdayObj?.optDouble("energy_kwh", hero?.optDouble("yesterday_energy_kwh", 0.0) ?: 0.0) ?: 0.0,
+                vsYesterdayPct      = hero?.optInt("vs_yesterday_pct", 0) ?: 0,
                 dailyGoalKm         = hero?.optDouble("daily_goal_km", 25.0) ?: 25.0,
-                goalProgressPct     = hero?.optInt("goal_progress_pct", 74) ?: 74,
+                goalProgressPct     = hero?.optInt("goal_progress_pct", 0) ?: 0,
 
                 // Monthly & Lifecycle
-                monthDistanceKm     = monthly?.optDouble("total_distance_km", 96.4) ?: 96.4,
-                monthDaysActive     = monthly?.optInt("days_active", 7) ?: 7,
-                monthAvgDailyKm     = monthly?.optDouble("avg_daily_km", 13.8) ?: 13.8,
-                realWorldEfficiency = ins?.optString("real_world_efficiency")?.takeIf { it != "null" && it.isNotBlank() } ?: "1.94 km/%",
-                petrolSavedLiters   = savings?.optDouble("fuel_avoided_liters", ins?.optDouble("petrol_saved_liters", 32.5) ?: 32.5) ?: 32.5,
-                moneySavedInr       = savings?.optInt("this_month_inr", ins?.optInt("money_saved_inr", 1240) ?: 1240) ?: 1240,
-                totalLifetimeSavedInr = savings?.optInt("total_lifetime_saved_inr", 18600) ?: 18600,
-                co2SavedKg          = savings?.optDouble("co2_offset_kg", ins?.optDouble("co2_saved_kg", 74.0) ?: 74.0) ?: 74.0,
-                odometerKm          = ins?.optDouble("odometer_km", 4812.0) ?: 4812.0,
-                nextServiceKm       = ins?.optInt("next_service_km", 5000) ?: 5000,
-                kmUntilService      = ins?.optDouble("km_until_service", 188.0) ?: 188.0,
-                aiServiceUrgency    = ins?.optString("ai_service_urgency", "UPCOMING") ?: "UPCOMING",
-                aiSmartTip          = aiCoach?.optString("summary_tip", ins?.optString("ai_smart_tip", "Cruising at 35-45 km/h in ECO mode yields optimal energy efficiency.") ?: "") ?: "",
+                monthDistanceKm     = monthly?.optDouble("total_distance_km", 0.0) ?: 0.0,
+                monthDaysActive     = monthly?.optInt("days_active", 0) ?: 0,
+                monthAvgDailyKm     = monthly?.optDouble("avg_daily_km", 0.0) ?: 0.0,
+                realWorldEfficiency = ins?.optString("real_world_efficiency")?.takeIf { it != "null" && it.isNotBlank() },
+                petrolSavedLiters   = savings?.optDouble("fuel_avoided_liters", ins?.optDouble("petrol_saved_liters", 0.0) ?: 0.0) ?: 0.0,
+                moneySavedInr       = savings?.optInt("this_month_inr", ins?.optInt("money_saved_inr", 0) ?: 0) ?: 0,
+                totalLifetimeSavedInr = savings?.optInt("total_lifetime_saved_inr", 0) ?: 0,
+                co2SavedKg          = savings?.optDouble("co2_offset_kg", ins?.optDouble("co2_saved_kg", 0.0) ?: 0.0) ?: 0.0,
+                odometerKm          = ins?.optDouble("odometer_km", 0.0) ?: 0.0,
+                nextServiceKm       = ins?.optInt("next_service_km", 0) ?: 0,
+                kmUntilService      = ins?.optDouble("km_until_service", 0.0) ?: 0.0,
+                aiServiceUrgency    = ins?.optString("ai_service_urgency", "STANDBY") ?: "STANDBY",
+                aiSmartTip          = aiCoach?.optString("summary_tip", ins?.optString("ai_smart_tip", "") ?: "") ?: "",
 
                 // Energy Dynamics
-                consumedKwh         = dynamics?.optDouble("consumed_kwh", 42.6) ?: 42.6,
-                recapturedRegenKwh  = dynamics?.optDouble("recaptured_regen_kwh", 6.8) ?: 6.8,
-                driveExpenditurePct = dynamics?.optInt("drive_expenditure_pct", 84) ?: 84,
-                regenRecapturedPct  = dynamics?.optInt("regen_recaptured_pct", 16) ?: 16,
+                consumedKwh         = dynamics?.optDouble("consumed_kwh", 0.0) ?: 0.0,
+                recapturedRegenKwh  = dynamics?.optDouble("recaptured_regen_kwh", 0.0) ?: 0.0,
+                driveExpenditurePct = dynamics?.optInt("drive_expenditure_pct", 0) ?: 0,
+                regenRecapturedPct  = dynamics?.optInt("regen_recaptured_pct", 0) ?: 0,
+                ecoRangeProjectionKm = dynamics?.optInt("eco_range_km", 0) ?: 0,
+                sportRangeProjectionKm = dynamics?.optInt("sport_range_km", 0) ?: 0,
 
                 // Neural Copilot
-                ecoScore            = aiCoach?.optInt("eco_score", 96) ?: 96,
-                ecoRating           = aiCoach?.optString("eco_rating", "Master Throttle Flow") ?: "Master Throttle Flow",
-                fleetRank           = aiCoach?.optString("fleet_rank", "Top 5% Rider") ?: "Top 5% Rider",
-                smoothAccelPct      = aiCoach?.optInt("smooth_accel_pct", 94) ?: 94,
-                bonusRangeKm        = aiCoach?.optInt("bonus_range_km", 18) ?: 18,
-                throttleLagSec      = aiCoach?.optDouble("throttle_lag_sec", 0.04) ?: 0.04,
-                speedZoneEcoPct     = speedZones?.optInt("eco_pct", 68) ?: 68,
-                speedZoneCruisePct  = speedZones?.optInt("cruise_pct", 24) ?: 24,
-                speedZonePowerPct   = speedZones?.optInt("power_pct", 8) ?: 8,
-                peakCommuteWindows  = aiCoach?.optString("peak_commute_windows", "8:15 AM & 6:20 PM") ?: "8:15 AM & 6:20 PM",
+                ecoScore            = aiCoach?.optInt("eco_score", 0) ?: 0,
+                ecoRating           = aiCoach?.optString("eco_rating", "") ?: "",
+                fleetRank           = aiCoach?.optString("fleet_rank", "") ?: "",
+                smoothAccelPct      = aiCoach?.optInt("smooth_accel_pct", 0) ?: 0,
+                bonusRangeKm        = aiCoach?.optInt("bonus_range_km", 0) ?: 0,
+                throttleLagSec      = aiCoach?.optDouble("throttle_lag_sec", 0.0) ?: 0.0,
+                speedZoneEcoPct     = speedZones?.optInt("eco_pct", 0) ?: 0,
+                speedZoneCruisePct  = speedZones?.optInt("cruise_pct", 0) ?: 0,
+                speedZonePowerPct   = speedZones?.optInt("power_pct", 0) ?: 0,
+                peakCommuteWindows  = aiCoach?.optString("peak_commute_windows", "") ?: "",
+                aiTipSummary        = aiCoach?.optString("tip_summary", "") ?: "",
+
+                // Environmental & Wallet Impact Matrix (30D)
+                impactSavingsInr30D     = savings?.optInt("impact_savings_inr", 0) ?: 0,
+                impactSavingsYoyPct     = savings?.optInt("impact_savings_yoy_pct", 0) ?: 0,
+                impactFuelAvoidedLiters = savings?.optDouble("impact_fuel_avoided_liters", 0.0) ?: 0.0,
+                impactCo2OffsetKg       = savings?.optDouble("impact_co2_offset_kg", 0.0) ?: 0.0,
+                serviceHealthLifePct    = ins?.optInt("service_health_life_pct", 0) ?: 0,
+                serviceRemainingKm      = ins?.optInt("service_remaining_km", 0) ?: 0,
 
                 // LFP Battery Matrix
-                batteryVoltage      = battery?.optDouble("pack_voltage", 51.2) ?: 51.2,
-                batteryCurrentA     = battery?.optDouble("pack_current_a", 4.2) ?: 4.2,
-                batteryTemp         = battery?.optDouble("pack_temp_c", 29.4) ?: 29.4,
-                cellDeltaV          = battery?.optDouble("cell_delta_v", 0.008) ?: 0.008,
-                batterySoh          = battery?.optInt("soh_percent", 98) ?: 98,
-                cycleCount          = battery?.optInt("cycle_count", 44) ?: 44,
+                batteryVoltage      = battery?.optDouble("pack_voltage", 0.0) ?: 0.0,
+                batteryCurrentA     = battery?.optDouble("pack_current_a", 0.0) ?: 0.0,
+                batteryTemp         = battery?.optDouble("pack_temp_c", 0.0) ?: 0.0,
+                cellDeltaV          = battery?.optDouble("cell_delta_v", 0.0) ?: 0.0,
+                batterySoh          = battery?.optInt("soh_percent", 0) ?: 0,
+                cycleCount          = battery?.optInt("cycle_count", 0) ?: 0,
                 fastChargeEnabled   = battery?.optBoolean("fast_charge_enabled", true) ?: true,
 
                 // Vehicle Hardware States
@@ -470,6 +611,12 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
 
                 // Recommendations
                 recommendations     = recsList,
+
+                // Clustered Recent Journeys
+                recentJourneys      = journeysList,
+
+                // Official Ampere Maintenance Timeline & Care Report
+                maintenanceReport   = maintenanceReport,
 
                 lastSyncTimeMs      = System.currentTimeMillis(),
                 syncStatus          = "SUCCESS",
@@ -499,6 +646,10 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
             .putFloat("cached_today_avg_speed", ins.todayAvgSpeedKmh.toFloat())
             .putInt("cached_today_ride_time", ins.todayRideTimeMins)
             .putInt("cached_today_soc_consumed", ins.todaySocConsumed)
+            .putFloat("cached_today_energy_kwh", ins.todayEnergyKwh.toFloat())
+            .putFloat("cached_yesterday_distance", ins.yesterdayDistanceKm.toFloat())
+            .putInt("cached_yesterday_soc_consumed", ins.yesterdaySocConsumed)
+            .putFloat("cached_yesterday_energy_kwh", ins.yesterdayEnergyKwh.toFloat())
             .putInt("cached_vs_yesterday", ins.vsYesterdayPct)
             .putFloat("cached_battery_temp", ins.batteryTemp.toFloat())
             .putFloat("cached_cell_delta", ins.cellDeltaV.toFloat())
@@ -507,38 +658,95 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
             .putBoolean("cached_is_locked", ins.isLocked)
             .putBoolean("cached_boot_open", ins.bootOpen)
             .putBoolean("cached_siren_active", ins.sirenActive)
+            .putFloat("cached_consumed_kwh", ins.consumedKwh.toFloat())
+            .putFloat("cached_recaptured_regen_kwh", ins.recapturedRegenKwh.toFloat())
+            .putInt("cached_drive_expenditure_pct", ins.driveExpenditurePct)
+            .putInt("cached_regen_recaptured_pct", ins.regenRecapturedPct)
+            .putInt("cached_eco_range_km", ins.ecoRangeProjectionKm)
+            .putInt("cached_sport_range_km", ins.sportRangeProjectionKm)
+            .putInt("cached_smooth_accel_pct", ins.smoothAccelPct)
+            .putInt("cached_bonus_range_km", ins.bonusRangeKm)
+            .putFloat("cached_throttle_lag_sec", ins.throttleLagSec.toFloat())
+            .putInt("cached_speed_zone_eco_pct", ins.speedZoneEcoPct)
+            .putInt("cached_speed_zone_cruise_pct", ins.speedZoneCruisePct)
+            .putInt("cached_speed_zone_power_pct", ins.speedZonePowerPct)
+            .putString("cached_peak_commute_windows", ins.peakCommuteWindows)
+            .putString("cached_ai_tip_summary", ins.aiTipSummary)
+            .putInt("cached_impact_savings_inr", ins.impactSavingsInr30D)
+            .putInt("cached_impact_savings_yoy", ins.impactSavingsYoyPct)
+            .putFloat("cached_impact_fuel_avoided", ins.impactFuelAvoidedLiters.toFloat())
+            .putFloat("cached_impact_co2_offset", ins.impactCo2OffsetKg.toFloat())
+            .putInt("cached_service_health_life", ins.serviceHealthLifePct)
+            .putInt("cached_service_remaining_km", ins.serviceRemainingKm)
             .putLong("cached_last_sync", ins.lastSyncTimeMs)
             .apply()
     }
 
     private fun loadCachedInsights(): ServerInsights {
-        val lastSync = prefs.getLong("cached_last_sync", 0L)
-        return ServerInsights(
-            deviceId            = prefs.getString("cached_device_id", "") ?: "",
-            moneySavedInr       = prefs.getFloat("cached_money_saved", 1240f).toInt(),
-            petrolSavedLiters   = prefs.getFloat("cached_petrol_saved", 32.5f).toDouble(),
-            co2SavedKg          = prefs.getFloat("cached_co2_saved", 74.0f).toDouble(),
-            kmUntilService      = prefs.getFloat("cached_km_service", 188f).toDouble(),
-            nextServiceKm       = prefs.getInt("cached_next_service", 5000),
-            realWorldEfficiency = prefs.getString("cached_efficiency", "1.94 km/%")?.takeIf { it.isNotBlank() } ?: "1.94 km/%",
-            aiSmartTip          = prefs.getString("cached_ai_tip", "Cruising at 35-45 km/h in ECO mode yields optimal energy efficiency.") ?: "",
-            ecoScore            = prefs.getInt("cached_eco_score", 96),
-            fleetRank           = prefs.getString("cached_fleet_rank", "Top 5% Rider") ?: "Top 5% Rider",
-            todayDistanceKm     = prefs.getFloat("cached_today_distance", 18.6f).toDouble(),
-            todayAvgSpeedKmh    = prefs.getFloat("cached_today_avg_speed", 24.0f).toDouble(),
-            todayRideTimeMins   = prefs.getInt("cached_today_ride_time", 38),
-            todaySocConsumed    = prefs.getInt("cached_today_soc_consumed", 10),
-            vsYesterdayPct      = prefs.getInt("cached_vs_yesterday", 22),
-            batteryTemp         = prefs.getFloat("cached_battery_temp", 29.4f).toDouble(),
-            cellDeltaV          = prefs.getFloat("cached_cell_delta", 0.008f).toDouble(),
-            batterySoh          = prefs.getInt("cached_battery_soh", 98),
-            cycleCount          = prefs.getInt("cached_cycle_count", 44),
-            isLocked            = prefs.getBoolean("cached_is_locked", false),
-            bootOpen            = prefs.getBoolean("cached_boot_open", false),
-            sirenActive         = prefs.getBoolean("cached_siren_active", false),
-            lastSyncTimeMs      = lastSync,
-            syncStatus          = if (lastSync > 0) "SUCCESS" else "IDLE"
-        )
+        return try {
+            val currentEffective = try { getEffectiveDeviceId() } catch (e: Exception) { "NEXUS_SCOOTER" }
+            val cachedDevId = try { prefs.getString("cached_device_id", "") ?: "" } catch (e: Exception) { "" }
+            // If current active device differs from what was cached, avoid showing stale cross-device data
+            if (cachedDevId.isNotBlank() && cachedDevId != currentEffective) {
+                return ServerInsights(deviceId = currentEffective)
+            }
+            val lastSync = try { prefs.getLong("cached_last_sync", 0L) } catch (e: Exception) { 0L }
+            val cachedOdo = try { prefs.getFloat("last_known_odometer", 0f).toDouble() } catch (e: Exception) { 0.0 }
+            ServerInsights(
+                deviceId            = if (cachedDevId.isNotBlank()) cachedDevId else currentEffective,
+                moneySavedInr       = try { prefs.getFloat("cached_money_saved", 0f).toInt() } catch (e: Exception) { try { prefs.getInt("cached_money_saved", 0) } catch (e2: Exception) { 0 } },
+                petrolSavedLiters   = try { prefs.getFloat("cached_petrol_saved", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                co2SavedKg          = try { prefs.getFloat("cached_co2_saved", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                kmUntilService      = try { prefs.getFloat("cached_km_service", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                nextServiceKm       = try { prefs.getInt("cached_next_service", 0) } catch (e: Exception) { 0 },
+                realWorldEfficiency = try { prefs.getString("cached_efficiency", null)?.takeIf { it.isNotBlank() } } catch (e: Exception) { null },
+                aiSmartTip          = try { prefs.getString("cached_ai_tip", "") ?: "" } catch (e: Exception) { "" },
+                ecoScore            = try { prefs.getInt("cached_eco_score", 0) } catch (e: Exception) { 0 },
+                fleetRank           = try { prefs.getString("cached_fleet_rank", "") ?: "" } catch (e: Exception) { "" },
+                todayDistanceKm     = try { prefs.getFloat("cached_today_distance", 0.0f).toDouble() } catch (e: Exception) { 0.0 },
+                todayAvgSpeedKmh    = try { prefs.getFloat("cached_today_avg_speed", 0.0f).toDouble() } catch (e: Exception) { 0.0 },
+                todayRideTimeMins   = try { prefs.getInt("cached_today_ride_time", 0) } catch (e: Exception) { 0 },
+                todaySocConsumed    = try { prefs.getInt("cached_today_soc_consumed", 0) } catch (e: Exception) { 0 },
+                todayEnergyKwh      = try { prefs.getFloat("cached_today_energy_kwh", 0.0f).toDouble() } catch (e: Exception) { 0.0 },
+                yesterdayDistanceKm = try { prefs.getFloat("cached_yesterday_distance", 0.0f).toDouble() } catch (e: Exception) { 0.0 },
+                yesterdaySocConsumed = try { prefs.getInt("cached_yesterday_soc_consumed", 0) } catch (e: Exception) { 0 },
+                yesterdayEnergyKwh  = try { prefs.getFloat("cached_yesterday_energy_kwh", 0.0f).toDouble() } catch (e: Exception) { 0.0 },
+                vsYesterdayPct      = try { prefs.getInt("cached_vs_yesterday", 0) } catch (e: Exception) { 0 },
+                batteryTemp         = try { prefs.getFloat("cached_battery_temp", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                cellDeltaV          = try { prefs.getFloat("cached_cell_delta", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                batterySoh          = try { prefs.getInt("cached_battery_soh", 0) } catch (e: Exception) { 0 },
+                cycleCount          = try { prefs.getInt("cached_cycle_count", 0) } catch (e: Exception) { 0 },
+                isLocked            = try { prefs.getBoolean("cached_is_locked", false) } catch (e: Exception) { false },
+                bootOpen            = try { prefs.getBoolean("cached_boot_open", false) } catch (e: Exception) { false },
+                sirenActive         = try { prefs.getBoolean("cached_siren_active", false) } catch (e: Exception) { false },
+                consumedKwh         = try { prefs.getFloat("cached_consumed_kwh", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                recapturedRegenKwh  = try { prefs.getFloat("cached_recaptured_regen_kwh", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                driveExpenditurePct = try { prefs.getInt("cached_drive_expenditure_pct", 0) } catch (e: Exception) { 0 },
+                regenRecapturedPct  = try { prefs.getInt("cached_regen_recaptured_pct", 0) } catch (e: Exception) { 0 },
+                ecoRangeProjectionKm = try { prefs.getInt("cached_eco_range_km", 0) } catch (e: Exception) { 0 },
+                sportRangeProjectionKm = try { prefs.getInt("cached_sport_range_km", 0) } catch (e: Exception) { 0 },
+                smoothAccelPct      = try { prefs.getInt("cached_smooth_accel_pct", 0) } catch (e: Exception) { 0 },
+                bonusRangeKm        = try { prefs.getInt("cached_bonus_range_km", 0) } catch (e: Exception) { 0 },
+                throttleLagSec      = try { prefs.getFloat("cached_throttle_lag_sec", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                speedZoneEcoPct     = try { prefs.getInt("cached_speed_zone_eco_pct", 0) } catch (e: Exception) { 0 },
+                speedZoneCruisePct  = try { prefs.getInt("cached_speed_zone_cruise_pct", 0) } catch (e: Exception) { 0 },
+                speedZonePowerPct   = try { prefs.getInt("cached_speed_zone_power_pct", 0) } catch (e: Exception) { 0 },
+                peakCommuteWindows  = try { prefs.getString("cached_peak_commute_windows", "") ?: "" } catch (e: Exception) { "" },
+                aiTipSummary        = try { prefs.getString("cached_ai_tip_summary", "") ?: "" } catch (e: Exception) { "" },
+                impactSavingsInr30D = try { prefs.getInt("cached_impact_savings_inr", 0) } catch (e: Exception) { 0 },
+                impactSavingsYoyPct = try { prefs.getInt("cached_impact_savings_yoy", 0) } catch (e: Exception) { 0 },
+                impactFuelAvoidedLiters = try { prefs.getFloat("cached_impact_fuel_avoided", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                impactCo2OffsetKg   = try { prefs.getFloat("cached_impact_co2_offset", 0f).toDouble() } catch (e: Exception) { 0.0 },
+                serviceHealthLifePct = try { prefs.getInt("cached_service_health_life", 0) } catch (e: Exception) { 0 },
+                serviceRemainingKm  = try { prefs.getInt("cached_service_remaining_km", 0) } catch (e: Exception) { 0 },
+                maintenanceReport   = try { MaintenanceRepository.buildLocalReport(cachedOdo) } catch (e: Exception) { MaintenanceRepository.buildLocalReport(0.0) },
+                lastSyncTimeMs      = lastSync,
+                syncStatus          = if (lastSync > 0) "SUCCESS" else "IDLE"
+            )
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to load cached insights safely: ${e.message}")
+            ServerInsights(deviceId = "NEXUS_SCOOTER")
+        }
     }
 
     // ─── Remote Commands & Extended API Operations ────────────────────────────
@@ -681,6 +889,55 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
     }
 
     /**
+     * Fetches real trips from the server for the active scooter.
+     */
+    fun fetchTrips(
+        deviceAddress: String? = null,
+        limit: Int = 10,
+        onComplete: ((Boolean, JSONObject?) -> Unit)? = null
+    ) {
+        val id = resolveDeviceId(deviceAddress)
+        coroutineScope.launch {
+            val encodedId = withContext(Dispatchers.IO) {
+                try { URLEncoder.encode(id, "UTF-8") } catch (e: Exception) { id }
+            }
+            val res = executeGet("/api/scooter/$encodedId/trips?limit=$limit")
+            withContext(Dispatchers.Main) {
+                if (res != null && res.optString("status") == "success") {
+                    onComplete?.invoke(true, res)
+                } else {
+                    onComplete?.invoke(false, null)
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetches AI insights filtered by timeframe ("30D", "7D", "ALL") from the cloud backend.
+     */
+    fun fetchInsightsTimeframe(
+        deviceAddress: String?,
+        timeframe: String = "30D",
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        val id = resolveDeviceId(deviceAddress)
+        coroutineScope.launch {
+            val encodedId = withContext(Dispatchers.IO) {
+                try { URLEncoder.encode(id, "UTF-8") } catch (e: Exception) { id }
+            }
+            val res = executeGet("/api/scooter/$encodedId/insights?range=$timeframe")
+            withContext(Dispatchers.Main) {
+                if (res != null) {
+                    parseAndApplyInsights(res)
+                    onComplete?.invoke(true)
+                } else {
+                    onComplete?.invoke(false)
+                }
+            }
+        }
+    }
+
+    /**
      * Updates default riding mode setting in the cloud backend.
      */
     fun setRidingMode(
@@ -747,10 +1004,10 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
 
     // ─── Native HTTP Implementation ──────────────────────────────────────────
 
-    private fun executePost(endpoint: String, jsonBody: String): JSONObject? {
+    private suspend fun executePost(endpoint: String, jsonBody: String): JSONObject? = withContext(Dispatchers.IO) {
         val fullUrl = getServerUrl().removeSuffix("/") + endpoint
         var conn: HttpURLConnection? = null
-        return try {
+        try {
             val url = URL(fullUrl)
             conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
@@ -784,17 +1041,17 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "executePost $endpoint error: ${e.message}")
+            Log.e(TAG, "executePost $endpoint error: ${e.javaClass.simpleName} - ${e.message}")
             null
         } finally {
             conn?.disconnect()
         }
     }
 
-    private fun executeGet(endpoint: String): JSONObject? {
+    private suspend fun executeGet(endpoint: String): JSONObject? = withContext(Dispatchers.IO) {
         val fullUrl = getServerUrl().removeSuffix("/") + endpoint
         var conn: HttpURLConnection? = null
-        return try {
+        try {
             val url = URL(fullUrl)
             conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
@@ -819,7 +1076,7 @@ class NexusCloudSyncManager private constructor(private val context: Context) {
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "executeGet $endpoint error: ${e.message}")
+            Log.e(TAG, "executeGet $endpoint error: ${e.javaClass.simpleName} - ${e.message}")
             null
         } finally {
             conn?.disconnect()

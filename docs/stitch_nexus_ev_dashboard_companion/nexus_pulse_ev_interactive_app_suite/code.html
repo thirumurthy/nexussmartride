@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Nexus Pulse EV Dashboard</title>
+<!-- Tailwind CSS v3 CDN with Forms and Container Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts for High-Tech EV Automotive Typography -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Custom Tailwind Config for EV Cyber Neon Theme -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#070a0e',
+            cyberDark: '#0b1017',
+            cardBg: '#101722',
+            cardBorder: 'rgba(0, 245, 212, 0.14)',
+            neonCyan: '#00e5ff',
+            neonTeal: '#00b4d8',
+            electricBlue: '#0077b6',
+            neonGreen: '#10b981',
+            ecoLime: '#84cc16'
+          },
+          fontFamily: {
+            sans: ['"Manrope"', '"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace']
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 20px -3px rgba(0, 229, 255, 0.35)',
+            'glow-green': '0 0 16px -2px rgba(16, 185, 129, 0.4)',
+            'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="custom-theme">
+    body {
+      background-color: #05080c;
+      font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .neon-text-glow {
+      text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+    }
+    .glass-card {
+      background: linear-gradient(180deg, rgba(16, 23, 34, 0.85) 0%, rgba(11, 16, 23, 0.95) 100%);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 229, 255, 0.12);
+    }
+    .glass-pill {
+      background: rgba(11, 16, 23, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 229, 255, 0.2);
+    }
+    .hero-stat-badge {
+      background: linear-gradient(135deg, rgba(16, 23, 34, 0.85) 0%, rgba(7, 10, 14, 0.9) 100%);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+    }
+    .tab-panel {
+      transition: opacity 0.22s ease-in-out, transform 0.22s ease-out;
+    }
+    .tab-panel.hidden {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    .tab-panel:not(.hidden) {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Hide scrollbars on modern mobile browsers while keeping scrollable */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="text-slate-100 flex justify-center min-h-screen selection:bg-neonCyan selection:text-black">
+<!-- Mobile App Wrapper -->
+<div class="w-full max-w-[425px] min-h-screen flex flex-col bg-[#070a0e] shadow-2xl relative pb-32 border-x border-cyan-950/30 overflow-x-hidden">
+<!-- BEGIN: Sticky Header Area -->
+<header class="sticky top-0 z-30 bg-[#070a0e]/95 backdrop-blur-md border-b border-cyan-950/40">
+<!-- iOS Status Bar -->
+<div class="w-full px-6 pt-3 pb-1 flex items-center justify-between text-xs font-semibold tracking-wider text-slate-300" data-purpose="ios-status-bar">
+<span>7:09</span>
+<div class="flex items-center space-x-2">
+<!-- Bluetooth Icon -->
+<svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="m7 7 10 10-5 5V2l5 5L7 17" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<!-- VoLTE Icon -->
+<span class="text-[10px] font-bold px-1 bg-slate-800 rounded border border-slate-700">VoLTE</span>
+<!-- Cellular Signal -->
+<div class="flex items-end space-x-0.5 h-3">
+<div class="w-0.5 h-1.5 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-2 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-2.5 bg-slate-300 rounded-sm"></div>
+<div class="w-0.5 h-3 bg-slate-300 rounded-sm"></div>
+</div>
+<!-- Battery 82% -->
+<div class="flex items-center space-x-1 pl-1">
+<span class="text-[11px] font-mono">82%</span>
+<div class="w-5 h-2.5 border border-slate-300 rounded-sm p-0.5 flex items-center">
+<div class="h-full bg-neonCyan w-4/5 rounded-2xs"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Top Navigation Header -->
+<section class="px-5 py-2 flex items-center justify-between" data-purpose="app-header">
+<div class="flex flex-col">
+<div class="flex items-center space-x-2">
+<h1 class="text-xl font-mono font-extrabold tracking-tight text-white uppercase flex items-center gap-1.5">
+          Nexus <span class="text-neonCyan neon-text-glow">Pulse</span>
+</h1>
+<span class="text-[9px] font-bold bg-cyan-950/80 text-neonCyan border border-cyan-500/30 px-1.5 py-0.5 rounded-full font-mono">EX v4.2</span>
+</div>
+<div class="flex items-center space-x-1.5 text-xs text-slate-400 mt-0.5">
+<span class="font-mono text-slate-300">NEX_B9ABF</span>
+<span class="text-slate-600">•</span>
+<span class="flex items-center text-emerald-400 text-[11px]">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1"></span>
+          Cloud Synced
+        </span>
+</div>
+</div>
+<!-- Live Bluetooth Status Pill -->
+<button class="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-glow-green active:scale-95 transition-transform" data-purpose="connection-badge">
+<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+<span>Connected</span>
+<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="m8.25 4.5 7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</section>
+</header>
+<!-- END: Sticky Header Area -->
+<!-- Scrollable Tab Container Views -->
+<main class="px-4 pt-2 z-10 flex-1" id="app-view-container">
+<!-- ========================================== -->
+<!-- TAB 1: HOME (Dashboard)                   -->
+<!-- ========================================== -->
+<div class="tab-panel space-y-4" id="tab-home">
+<!-- Hero Showcase Section with Prominent Riding Telemetry & Music/Location Controls -->
+<section class="relative rounded-3xl overflow-hidden border border-cyan-500/25 shadow-2xl bg-[#090d14]" data-purpose="scooter-hero-card">
+<!-- Top Image Backdrop with Scooter -->
+<div class="relative w-full h-64">
+<img alt="Ampere Nexus Electric Scooter in cyber twilight" class="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-rjZsIal-mnRO0XaqyxEe5Zm2UF1R8_LWQRTpDJNo-sQIQOOiGaoNM2RZWYxj-oBe6SD5les9dZkyEGAKvf7XQUgOSSOnaSKLfd-0qsav_vXsIZJVhjB2Z2lmfungDNUx2bOGRa-cBQL9WU2-Ld_PNE402kx79FLRiE-hnhTL2LpDsh1rTHAxx1wjeNguXdNdr74rh7ldp7V7DD5SaXzW1qZ1m7hpTR-Mf05NOd2h"/>
+<!-- Dark cinematic cyber gradients -->
+<div class="absolute inset-0 bg-gradient-to-t from-[#090d14] via-[#090d14]/40 to-black/60"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-[#090d14]/80 via-transparent to-[#090d14]/60"></div>
+<!-- Top floating badges -->
+<div class="absolute top-3 left-3.5 glass-pill px-2.5 py-1 rounded-full flex items-center space-x-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="text-[10px] font-semibold text-emerald-300 tracking-wide font-mono">Ride Smart • Live Green</span>
+</div>
+<div class="absolute top-3 right-3.5 glass-pill px-2.5 py-1 rounded-full flex items-center space-x-1.5 text-[10px] font-mono text-cyan-300">
+<span class="w-1.5 h-1.5 rounded-full bg-neonCyan animate-ping"></span>
+<span>BLE 5.2 Live</span>
+</div>
+<!-- FOREGROUND OVERLAY: Today's Riding Details So Far -->
+<div class="absolute bottom-2.5 inset-x-3.5 hero-stat-badge rounded-2xl p-3 shadow-glow-cyan border border-neonCyan/30">
+<div class="flex items-center justify-between">
+<div>
+<div class="flex items-center space-x-1.5">
+<span class="inline-block w-2 h-2 rounded-full bg-neonCyan"></span>
+<span class="text-[10px] uppercase font-mono font-bold tracking-widest text-cyan-300">Distance Today So Far</span>
+</div>
+<div class="flex items-baseline space-x-1.5 mt-0.5">
+<span class="text-3xl font-extrabold font-mono text-white tracking-tight leading-none">18.6</span>
+<span class="text-neonCyan text-base font-bold font-mono">km</span>
+</div>
+</div>
+<!-- Spark badge -->
+<div class="text-right">
+<span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold">
+<svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>+22% vs yesterday</span>
+</span>
+<p class="text-[9px] text-slate-400 font-mono mt-1">Goal: 25 km (74% done)</p>
+</div>
+</div>
+<!-- Sub-metrics Grid within Hero Overlay -->
+<div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-700/60 text-center">
+<div class="flex flex-col items-center">
+<span class="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Avg Speed</span>
+<span class="text-xs font-mono font-bold text-white mt-0.5">24 <span class="text-[9px] text-cyan-300">km/h</span></span>
+</div>
+<div class="flex flex-col items-center border-x border-slate-800">
+<span class="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Ride Time</span>
+<span class="text-xs font-mono font-bold text-white mt-0.5">38 <span class="text-[9px] text-slate-400">mins</span></span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-[9px] uppercase tracking-wider text-slate-400 font-medium">Battery Used</span>
+<span class="text-xs font-mono font-bold text-emerald-400 mt-0.5">9.6 <span class="text-[9px] text-slate-400">%</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- DOCKED HERO ACTION CONTROLS: Music Sync (YouTube) & Live GPS Location (Google Maps) -->
+<div class="p-3 bg-[#0a0e16] border-t border-cyan-950/60">
+<div class="grid grid-cols-2 gap-2.5" data-purpose="hero-quick-features">
+<!-- Music Sync Tile -->
+<div class="glass-card hover:border-cyan-400/60 p-2.5 rounded-2xl flex flex-col justify-between transition-all group">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center space-x-1.5">
+<div class="w-6 h-6 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-500">
+<svg class="w-3.5 h-3.5" fill="currentColor" viewbox="0 0 24 24">
+<path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path>
+</svg>
+</div>
+<span class="text-[9px] font-mono font-bold text-red-400 uppercase tracking-wide">YouTube</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="TFT Synced"></span>
+</div>
+<div>
+<h4 class="text-xs font-bold text-white group-hover:text-neonCyan transition-colors">Music Sync</h4>
+<p class="text-[10px] text-slate-400 truncate mt-0.5">Stream beats to cluster</p>
+</div>
+<div class="mt-2 pt-2 border-t border-slate-800 flex items-center gap-1.5">
+<a class="flex-1 py-1.5 px-2 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/30 rounded-xl text-[10px] font-mono font-bold text-neonCyan flex items-center justify-center space-x-1 active:scale-95 transition-all text-center" href="https://youtube.com" onclick="flashPillMessage('Streaming YouTube Music to TFT cluster...')" rel="noopener noreferrer" target="_blank">
+<svg class="w-3 h-3 text-red-400" fill="currentColor" viewbox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+<span>Play Audio</span>
+</a>
+<!-- Quick switch audio pill -->
+<button class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-300 text-[10px]" onclick="openMusicSelectModal()" title="Switch Music App">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+<!-- Location Feature Tile -->
+<div class="glass-card hover:border-cyan-400/60 p-2.5 rounded-2xl flex flex-col justify-between transition-all group">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center space-x-1.5">
+<div class="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+<svg class="w-3.5 h-3.5" fill="currentColor" viewbox="0 0 24 24">
+<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"></path>
+</svg>
+</div>
+<span class="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-wide">Maps Live</span>
+</div>
+<span class="text-[9px] font-mono text-cyan-300">GPS OK</span>
+</div>
+<div>
+<h4 class="text-xs font-bold text-white group-hover:text-neonCyan transition-colors">Share Location</h4>
+<p class="text-[10px] text-slate-400 truncate mt-0.5">Google Maps GPS tracking</p>
+</div>
+<div class="mt-2 pt-2 border-t border-slate-800 flex items-center gap-1.5">
+<a class="flex-1 py-1.5 px-2 bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/30 rounded-xl text-[10px] font-mono font-bold text-emerald-300 flex items-center justify-center space-x-1 active:scale-95 transition-all text-center" href="https://maps.google.com" onclick="flashPillMessage('Opening Google Maps live navigation stream...')" rel="noopener noreferrer" target="_blank">
+<svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Open Maps</span>
+</a>
+<button class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-300 text-[10px]" onclick="flashPillMessage('Live ride coordinate link copied! 📍')" title="Share Ride URL">
+<svg class="w-3.5 h-3.5 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Riding Distance History & Weekly Cadence Breakdown (Adjusted seamlessly to prevent duplication) -->
+<section class="glass-card rounded-3xl p-4 shadow-xl relative overflow-hidden" data-purpose="riding-analytics-card">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div>
+<h2 class="text-sm font-semibold tracking-wide text-white">Weekly Mileage</h2>
+<p class="text-[10px] text-slate-400 font-mono">Cadence &amp; Trends</p>
+</div>
+</div>
+<div class="flex items-center p-1 bg-obsidian/80 rounded-full border border-slate-800 text-[11px] font-medium" data-purpose="time-range-toggle">
+<button class="px-2.5 py-0.5 rounded-full text-slate-400 hover:text-white" onclick="setRidingTimeFilter(this, '3D')">3D</button>
+<button class="px-2.5 py-0.5 rounded-full bg-neonCyan text-black font-bold shadow-glow-cyan" onclick="setRidingTimeFilter(this, '7D')">7D</button>
+<button class="px-2.5 py-0.5 rounded-full text-slate-400 hover:text-white" onclick="setRidingTimeFilter(this, '30D')">30D</button>
+<button class="px-2.5 py-0.5 rounded-full text-slate-400 hover:text-white" onclick="setRidingTimeFilter(this, '1Y')">1Y</button>
+</div>
+</div>
+<!-- Cadence Chart Bars -->
+<div class="grid grid-cols-12 gap-3 items-end pb-3 border-b border-slate-800/80">
+<div class="col-span-5">
+<span class="text-[11px] uppercase tracking-wider text-slate-400 font-medium">7-Day Aggregation</span>
+<div class="flex items-baseline space-x-1 mt-0.5">
+<span class="text-3xl font-extrabold font-mono text-white tracking-tight">96.4</span>
+<span class="text-neonCyan text-sm font-bold font-mono">km</span>
+</div>
+<div class="flex items-center space-x-1 text-emerald-400 text-xs font-semibold mt-1">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Steady rider streak</span>
+</div>
+</div>
+<div class="col-span-7 flex justify-between items-end space-x-2 pl-2">
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-slate-400 mb-1">12.4</span>
+<div class="w-full bg-slate-800/70 h-16 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-600 to-neonTeal rounded-t-md" style="height: 57%;"></div>
+</div>
+<span class="text-[10px] text-slate-400 font-medium mt-1">Fri</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-neonCyan font-bold mb-1">21.8</span>
+<div class="w-full bg-slate-800/70 h-16 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-teal-500 to-neonCyan rounded-t-md shadow-glow-cyan" style="height: 100%;"></div>
+</div>
+<span class="text-[10px] text-neonCyan font-semibold mt-1">Sat</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[10px] font-mono text-emerald-300 font-semibold mb-1">18.6</span>
+<div class="w-full bg-slate-800/70 h-16 rounded-t-lg relative flex items-end p-0.5">
+<div class="w-full bg-gradient-to-t from-cyan-600 to-emerald-400 rounded-t-md" style="height: 85%;"></div>
+</div>
+<span class="text-[10px] text-emerald-400 font-medium mt-1">Sun</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2 pt-3">
+<div class="flex items-center space-x-2">
+<div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 9v7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div>
+<p class="text-[10px] text-slate-400">7-Day Total</p>
+<p class="text-xs font-mono font-bold text-white">96.4 <span class="text-[10px] text-slate-400">km</span></p>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-emerald-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div>
+<p class="text-[10px] text-slate-400">Avg / Day</p>
+<p class="text-xs font-mono font-bold text-white">13.8 <span class="text-[10px] text-slate-400">km</span></p>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-teal-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="6" cy="18" r="3"></circle>
+<circle cx="18" cy="18" r="3"></circle>
+<path d="M6 15h11l2-7H9"></path>
+</svg>
+</div>
+<div>
+<p class="text-[10px] text-slate-400">Trips Logged</p>
+<p class="text-xs font-mono font-bold text-white">8 <span class="text-[10px] text-slate-400">trips</span></p>
+</div>
+</div>
+</div>
+<button class="w-full mt-3.5 py-2 px-3 bg-cyan-950/40 hover:bg-cyan-900/40 border border-cyan-500/30 rounded-xl flex items-center justify-center space-x-1.5 text-xs font-semibold text-neonCyan transition-all active:scale-[0.98]" onclick="switchTab('trips')">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>View Full Distance History</span>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="m8.25 4.5 7.5 7.5-7.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</section>
+<!-- Dual Grid: Energy/Range & Smart Insights -->
+<section class="grid grid-cols-2 gap-3" data-purpose="energy-and-smart-coach">
+<article class="glass-card rounded-3xl p-3.5 flex flex-col justify-between" data-purpose="battery-status-card">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Power Pack</span>
+<span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/30">98% SOH</span>
+</div>
+<div class="flex items-center space-x-2.5 mt-2.5">
+<div class="relative w-10 h-14 border-2 border-emerald-400/80 rounded-lg p-0.5 flex flex-col justify-end bg-obsidian">
+<div class="w-3 h-1 bg-emerald-400 absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-t-sm"></div>
+<div class="w-full bg-gradient-to-t from-emerald-500 to-neonCyan rounded-sm h-[68%] transition-all"></div>
+<svg class="w-4 h-4 text-white absolute inset-0 m-auto" fill="currentColor" viewbox="0 0 24 24">
+<path d="M7 2v11h3v9l7-12h-4l4-8z"></path>
+</svg>
+</div>
+<div>
+<div class="flex items-baseline">
+<span class="text-2xl font-extrabold font-mono text-white tracking-tight">68</span>
+<span class="text-sm font-bold text-emerald-400">%</span>
+</div>
+<div class="text-[11px] font-mono text-emerald-300 font-semibold leading-tight">≈ 54 km</div>
+</div>
+</div>
+<div class="w-full bg-slate-800/80 rounded-full h-2 mt-3 overflow-hidden p-0.5">
+<div class="bg-gradient-to-r from-teal-400 to-neonCyan h-full rounded-full" style="width: 68%;"></div>
+</div>
+<div class="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-1">
+<span>Cluster: 54 km</span>
+<span class="text-cyan-300">AI: 72 km</span>
+</div>
+</div>
+<div class="pt-2.5 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+<div>
+<span class="text-slate-400 block">Efficiency</span>
+<span class="font-mono font-bold text-slate-200">1.72 <span class="text-slate-400">km/%</span></span>
+</div>
+<div class="text-right">
+<span class="text-slate-400 block">7d Avg</span>
+<span class="font-mono font-bold text-neonCyan">1.91 <span class="text-slate-400">km/%</span></span>
+</div>
+</div>
+</article>
+<article class="glass-card rounded-3xl p-3.5 flex flex-col justify-between" data-purpose="smart-coach-card">
+<div>
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-1">
+<span class="text-amber-400 text-xs">💡</span>
+<span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Smart Insights</span>
+</div>
+<button class="text-[10px] text-neonCyan font-bold flex items-center hover:underline" onclick="switchTab('insights')">More ›</button>
+</div>
+<div class="flex items-start space-x-2 mt-2.5 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+<span class="text-base">🏆</span>
+<div>
+<p class="text-[10px] text-slate-400">Best Efficiency</p>
+<p class="text-xs font-mono font-bold text-white">1.91 <span class="text-neonCyan">km/%</span></p>
+</div>
+</div>
+<div class="flex items-start space-x-2 mt-1.5 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+<span class="text-base">🕒</span>
+<div>
+<p class="text-[10px] text-slate-400">Usual Ride Time</p>
+<p class="text-xs font-mono font-bold text-white">8:10 <span class="text-slate-400">AM</span></p>
+</div>
+</div>
+</div>
+<div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-emerald-400 font-semibold">
+<span>You rode <strong class="text-white font-mono">22%</strong> more</span>
+<span class="text-sm">🎉</span>
+</div>
+</article>
+</section>
+<!-- Ownership Savings -->
+<section class="glass-card rounded-3xl p-4 shadow-xl relative" data-purpose="ownership-savings-card">
+<div class="flex items-center justify-between mb-3.5">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h2 class="text-sm font-semibold text-white tracking-wide">Ownership Savings</h2>
+</div>
+<div class="relative">
+<button class="flex items-center space-x-1 text-xs font-semibold text-slate-300 bg-obsidian px-2.5 py-1 rounded-full border border-slate-800 hover:border-slate-700">
+<span>Lifetime</span>
+<svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="m19.5 8.25-7.5 7.5-7.5-7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-4 gap-2 text-center">
+<div class="p-2 bg-slate-900/50 rounded-2xl border border-slate-800">
+<div class="w-6 h-6 mx-auto mb-1 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-xs">₹</div>
+<span class="text-sm font-bold font-mono text-emerald-400 block leading-tight">₹1,240</span>
+<span class="text-[9px] text-slate-400 leading-none">This Month</span>
+</div>
+<div class="p-2 bg-slate-900/50 rounded-2xl border border-slate-800">
+<div class="w-6 h-6 mx-auto mb-1 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 text-xs">⛽</div>
+<span class="text-sm font-bold font-mono text-cyan-300 block leading-tight">32.5 L</span>
+<span class="text-[9px] text-slate-400 leading-none">Fuel Saved</span>
+</div>
+<div class="p-2 bg-slate-900/50 rounded-2xl border border-slate-800">
+<div class="w-6 h-6 mx-auto mb-1 rounded-full bg-lime-500/10 flex items-center justify-center text-lime-400 text-xs">🍃</div>
+<span class="text-sm font-bold font-mono text-lime-300 block leading-tight">74 kg</span>
+<span class="text-[9px] text-slate-400 leading-none">CO₂ Offset</span>
+</div>
+<div class="p-2 bg-gradient-to-b from-amber-500/10 to-transparent rounded-2xl border border-amber-500/30">
+<div class="w-6 h-6 mx-auto mb-1 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 text-xs font-bold">★</div>
+<span class="text-sm font-bold font-mono text-amber-300 block leading-tight">₹18,600</span>
+<span class="text-[9px] text-amber-400/90 leading-none">Total Saved</span>
+</div>
+</div>
+<div class="mt-3 py-2 px-3 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl flex items-center justify-center space-x-2 text-xs font-medium text-emerald-300 text-center">
+<span>🌱</span>
+<span>You are helping the environment &amp; your pocket!</span>
+</div>
+</section>
+<!-- Cluster Navigation & Wi-Fi Mirroring Dock -->
+<section class="glass-card rounded-3xl p-4 shadow-xl" data-purpose="cluster-dock-card">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-xl bg-neonCyan/10 border border-neonCyan/30 flex items-center justify-center text-neonCyan">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.284a2.25 2.25 0 0 0-2.012 0L2.616 5.72A1.125 1.125 0 0 0 2 6.727v12.453c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497a2.25 2.25 0 0 0 2.012 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div>
+<h2 class="text-sm font-semibold text-white">Cluster &amp; Navigation</h2>
+<p class="text-[10px] text-slate-400">Sync: 19:09 • 0 min ago</p>
+</div>
+</div>
+<button class="p-1.5 rounded-full bg-slate-800 text-slate-300 hover:text-white" onclick="flashPillMessage('Cluster telemetry synchronized')" title="Sync Map Telemetry">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<div class="grid grid-cols-3 gap-1.5 p-1 bg-obsidian rounded-2xl border border-slate-800 mb-3" data-purpose="cluster-mode-switch">
+<button class="cluster-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white flex items-center justify-center space-x-1" onclick="setClusterMode(this, 'OFF')"><span>OFF</span></button>
+<button class="cluster-pill py-2 text-xs font-bold rounded-xl bg-neonCyan text-black flex items-center justify-center space-x-1 shadow-glow-cyan" onclick="setClusterMode(this, 'TBT (BLE)')"><span>TBT (BLE)</span></button>
+<button class="cluster-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white flex items-center justify-center space-x-1" onclick="setClusterMode(this, 'MIRROR')"><span>MIRROR</span></button>
+</div>
+<div class="bg-cyan-950/30 border border-cyan-500/20 rounded-2xl p-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<div class="w-2.5 h-2.5 rounded-full bg-neonCyan animate-ping"></div>
+<span class="text-xs text-slate-200" id="cluster-status-text">Streaming Maps prompts to TFT cluster</span>
+</div>
+<span class="text-[10px] font-mono text-cyan-300 font-semibold">18ms</span>
+</div>
+<div class="mt-3 p-3 bg-gradient-to-r from-obsidian via-cyan-950/30 to-obsidian border border-cyan-500/30 rounded-2xl">
+<div class="flex items-center justify-between mb-2.5">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 8 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" fill="#34A853"></path>
+<circle cx="12" cy="10" fill="#EA4335" r="3"></circle>
+</svg>
+</div>
+<div>
+<div class="flex items-center space-x-1.5">
+<h3 class="text-xs font-bold text-white">Google Maps Navigation</h3>
+<span class="text-[9px] font-mono font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 px-1 rounded">LIVE SYNC</span>
+</div>
+<p class="text-[10px] text-slate-400">Turn-by-turn prompts broadcast to 7" TFT</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<a class="py-2 px-2.5 bg-cyan-900/30 hover:bg-cyan-900/50 border border-cyan-500/30 rounded-xl text-xs font-semibold text-neonCyan flex items-center justify-center space-x-1.5 active:scale-95 transition-all text-center" href="https://maps.google.com" onclick="flashPillMessage('Opening Google Maps live ride stream &amp; location sharing...')" rel="noopener noreferrer" target="_blank">
+<svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Open Maps</span>
+</a>
+<button class="py-2 px-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center space-x-1.5 active:scale-95 transition-all" onclick="flashPillMessage('Live ride location link copied to clipboard 📍')">
+<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Share Live Trip</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Scooter Health & Telemetry Status -->
+<section class="glass-card rounded-3xl p-4 shadow-xl" data-purpose="scooter-health-section">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center space-x-2">
+<div class="w-7 h-7 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<h2 class="text-sm font-semibold text-white">Scooter Health</h2>
+</div>
+<span class="text-[11px] font-semibold text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 font-mono">
+<span>●</span> All Systems OK
+</span>
+</div>
+<div class="grid grid-cols-4 gap-2 text-center">
+<div class="bg-obsidian/70 p-2 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Battery</p>
+<p class="text-xs font-bold text-emerald-400 mt-0.5">Healthy</p>
+</div>
+<div class="bg-obsidian/70 p-2 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Cluster</p>
+<p class="text-xs font-bold text-neonCyan mt-0.5">Connected</p>
+</div>
+<div class="bg-obsidian/70 p-2 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Cloud</p>
+<p class="text-xs font-bold text-emerald-400 mt-0.5">2m ago</p>
+</div>
+<div class="bg-obsidian/70 p-2 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Service Due</p>
+<p class="text-xs font-mono font-bold text-white mt-0.5">3,295 km</p>
+</div>
+</div>
+</section>
+</div>
+<!-- ========================================== -->
+<!-- TAB 2: TRIPS (Route & Distance History)   -->
+<!-- ========================================== -->
+<div class="tab-panel hidden space-y-4" id="tab-trips">
+<!-- Trip Header Overview Card -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<div>
+<span class="text-[10px] font-bold text-neonCyan uppercase tracking-widest font-mono">ODOMETER &amp; JOURNEYS</span>
+<h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-1.5 mt-0.5">
+            Trip Analytics
+          </h2>
+</div>
+<span class="text-xs font-mono px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/30 rounded-full text-neonCyan font-bold">
+          4,812 km total
+        </span>
+</div>
+<!-- Weekly Cadence Chart -->
+<div class="bg-obsidian/80 rounded-2xl p-3 border border-slate-800">
+<div class="flex justify-between items-center mb-2">
+<span class="text-xs text-slate-300 font-medium">Weekly Cadence</span>
+<span class="text-xs font-mono text-neonCyan font-bold">96.4 km this week</span>
+</div>
+<!-- 7-Day Bar Grid -->
+<div class="flex items-end justify-between space-x-1.5 h-24 pt-2">
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-slate-500 mb-1">9.2</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-slate-600 rounded-t" style="height: 45%;"></div>
+</div>
+<span class="text-[9px] text-slate-400 mt-1">M</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-slate-500 mb-1">14.1</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-cyan-700 rounded-t" style="height: 65%;"></div>
+</div>
+<span class="text-[9px] text-slate-400 mt-1">T</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-slate-500 mb-1">11.0</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-slate-600 rounded-t" style="height: 50%;"></div>
+</div>
+<span class="text-[9px] text-slate-400 mt-1">W</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-slate-500 mb-1">9.3</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-slate-600 rounded-t" style="height: 42%;"></div>
+</div>
+<span class="text-[9px] text-slate-400 mt-1">T</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-slate-400 mb-1">12.4</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-cyan-600 rounded-t" style="height: 58%;"></div>
+</div>
+<span class="text-[9px] text-slate-400 mt-1">F</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-neonCyan font-bold mb-1">21.8</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-neonCyan rounded-t shadow-glow-cyan" style="height: 100%;"></div>
+</div>
+<span class="text-[9px] text-neonCyan font-bold mt-1">S</span>
+</div>
+<div class="flex-1 flex flex-col items-center">
+<span class="text-[9px] font-mono text-emerald-300 font-semibold mb-1">18.6</span>
+<div class="w-full bg-slate-800/80 rounded-t h-14 relative flex items-end">
+<div class="w-full bg-emerald-400 rounded-t" style="height: 85%;"></div>
+</div>
+<span class="text-[9px] text-emerald-400 font-bold mt-1">S</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Latest Ride Telemetry Spotlight -->
+<section class="glass-card rounded-3xl p-4 shadow-xl border border-emerald-500/20">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center space-x-2">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-300">Latest Completed Ride</span>
+</div>
+<span class="text-[11px] text-slate-400 font-mono">Today, 5:42 PM</span>
+</div>
+<div class="grid grid-cols-3 gap-2 py-2 border-y border-slate-800/80">
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Distance</span>
+<p class="text-base font-bold font-mono text-white">18.6 <span class="text-xs text-neonCyan">km</span></p>
+</div>
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Duration</span>
+<p class="text-base font-bold font-mono text-white">34 <span class="text-xs text-slate-400">mins</span></p>
+</div>
+<div>
+<span class="text-[10px] text-slate-400 uppercase">Top Speed</span>
+<p class="text-base font-bold font-mono text-emerald-400">67 <span class="text-xs">km/h</span></p>
+</div>
+</div>
+<div class="flex items-center justify-between text-xs mt-3 pt-1 text-slate-300">
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-neonCyan"></span>
+          Efficiency: <strong class="text-white font-mono">1.94 km/%</strong>
+</span>
+<span class="text-emerald-400 font-medium">9.6% Battery used</span>
+</div>
+</section>
+<!-- Recent Journeys List -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-semibold text-white">Recent Journeys</h3>
+<span class="text-xs text-neonCyan font-medium cursor-pointer">Filter</span>
+</div>
+<div class="space-y-2.5">
+<!-- Ride item 1 -->
+<div class="bg-obsidian/70 rounded-2xl p-3 border border-slate-800/90 flex items-center justify-between hover:border-cyan-500/30 transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-neonCyan font-bold">
+              ⚡
+            </div>
+<div>
+<p class="text-xs font-semibold text-white">Morning Office Sprint</p>
+<p class="text-[10px] text-slate-400">Indiranagar ➔ Electronic City • 8:15 AM</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs font-mono font-bold text-white">14.2 km</p>
+<p class="text-[10px] font-mono text-emerald-400">-7.2% SOC</p>
+</div>
+</div>
+<!-- Ride item 2 -->
+<div class="bg-obsidian/70 rounded-2xl p-3 border border-slate-800/90 flex items-center justify-between hover:border-cyan-500/30 transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
+              🌿
+            </div>
+<div>
+<p class="text-xs font-semibold text-white">Weekend Highway Cruise</p>
+<p class="text-[10px] text-slate-400">Outer Ring Road Loop • Yesterday</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs font-mono font-bold text-white">21.8 km</p>
+<p class="text-[10px] font-mono text-emerald-400">-11.4% SOC</p>
+</div>
+</div>
+<!-- Ride item 3 -->
+<div class="bg-obsidian/70 rounded-2xl p-3 border border-slate-800/90 flex items-center justify-between hover:border-cyan-500/30 transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+              ☕
+            </div>
+<div>
+<p class="text-xs font-semibold text-white">Quick City Errand</p>
+<p class="text-[10px] text-slate-400">Koramangala 4th Block • Friday</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs font-mono font-bold text-white">4.8 km</p>
+<p class="text-[10px] font-mono text-cyan-300">-2.3% SOC</p>
+</div>
+</div>
+<!-- Ride item 4 -->
+<div class="bg-obsidian/70 rounded-2xl p-3 border border-slate-800/90 flex items-center justify-between hover:border-cyan-500/30 transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold">
+              🌙
+            </div>
+<div>
+<p class="text-xs font-semibold text-white">Night Food Run</p>
+<p class="text-[10px] text-slate-400">Church Street &amp; MG Road • Thursday</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs font-mono font-bold text-white">7.6 km</p>
+<p class="text-[10px] font-mono text-emerald-400">-3.9% SOC</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- ========================================== -->
+<!-- TAB 3: INSIGHTS (AI Copilot & Efficiency) -->
+<!-- ========================================== -->
+<div class="tab-panel hidden space-y-4" id="tab-insights">
+<!-- AI Eco Score Hero Gauge -->
+<section class="glass-card rounded-3xl p-5 shadow-xl relative overflow-hidden">
+<div class="flex items-center justify-between mb-4">
+<div>
+<span class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest font-mono">NEXUS NEURAL COPILOT</span>
+<h2 class="text-lg font-bold text-white">Riding Eco Score</h2>
+</div>
+<span class="text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold px-2 py-0.5 rounded-full font-mono">
+          Top 4% Fleet
+        </span>
+</div>
+<!-- Circular Metric & Summary -->
+<div class="flex items-center justify-around py-2">
+<div class="relative w-28 h-28 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-neonCyan shadow-glow-cyan" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="96, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-3xl font-extrabold font-mono text-white leading-none">96</span>
+<span class="text-[10px] text-neonCyan font-semibold uppercase mt-0.5 font-mono">Optimal</span>
+</div>
+</div>
+<div class="space-y-2 pl-2">
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-full bg-neonCyan"></span>
+<span class="text-xs text-slate-300">Smooth Throttle: <b class="text-white font-mono">98%</b></span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+<span class="text-xs text-slate-300">Regen Capture: <b class="text-white font-mono">94%</b></span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-full bg-cyan-300"></span>
+<span class="text-xs text-slate-300">Speed Discipline: <b class="text-white font-mono">91%</b></span>
+</div>
+</div>
+</div>
+</section>
+<!-- Energy Dynamics & Speed Zones -->
+<section class="grid grid-cols-2 gap-3">
+<div class="glass-card rounded-3xl p-3.5 flex flex-col justify-between">
+<div>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Regen Recaptured</span>
+<p class="text-xl font-bold font-mono text-neonCyan mt-1">4.2 <span class="text-xs">kWh</span></p>
+<p class="text-[10px] text-slate-400 mt-1">Worth ≈ 28.5 km extra range returned this month</p>
+</div>
+<div class="w-full bg-slate-800 rounded-full h-1.5 mt-3">
+<div class="bg-neonCyan h-full rounded-full" style="width: 78%;"></div>
+</div>
+</div>
+<div class="glass-card rounded-3xl p-3.5 flex flex-col justify-between">
+<div>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Speed Zone</span>
+<p class="text-xl font-bold font-mono text-emerald-400 mt-1">35-50 <span class="text-xs">km/h</span></p>
+<p class="text-[10px] text-slate-400 mt-1">68% of riding was inside the sweet eco band</p>
+</div>
+<div class="w-full bg-slate-800 rounded-full h-1.5 mt-3">
+<div class="bg-emerald-400 h-full rounded-full" style="width: 68%;"></div>
+</div>
+</div>
+</section>
+<!-- AI Dynamic Insights Cards -->
+<section class="glass-card rounded-3xl p-4 shadow-xl space-y-3">
+<div class="flex items-center justify-between">
+<h3 class="text-sm font-semibold text-white">AI Recommendations</h3>
+<span class="text-[10px] font-mono text-slate-400">Updated 10m ago</span>
+</div>
+<div class="p-3 bg-cyan-950/30 border border-cyan-500/20 rounded-2xl flex items-start space-x-2.5">
+<span class="text-lg">🔋</span>
+<div class="text-xs">
+<strong class="text-neonCyan block font-semibold">Tire Pressure Optimization</strong>
+<span class="text-slate-300">Rear pressure is 28 PSI (recommended 32 PSI). Adjusting will yield +4 km per charge.</span>
+</div>
+</div>
+<div class="p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-2xl flex items-start space-x-2.5">
+<span class="text-lg">⚡</span>
+<div class="text-xs">
+<strong class="text-emerald-400 block font-semibold">Regen Level Recommendation</strong>
+<span class="text-slate-300">Your braking pattern suits High Regen in city stop-and-go traffic. Active mode is currently Medium.</span>
+</div>
+</div>
+</section>
+</div>
+<!-- ========================================== -->
+<!-- TAB 4: SCOOTER (Hardware & Diagnostics)   -->
+<!-- ========================================== -->
+<div class="tab-panel hidden space-y-4" id="tab-scooter">
+<!-- Scooter Control Hero Hub -->
+<section class="glass-card rounded-3xl p-4 shadow-xl relative overflow-hidden">
+<div class="flex items-center justify-between mb-3">
+<div>
+<span class="text-[10px] font-bold text-neonCyan uppercase tracking-widest font-mono">HARDWARE &amp; STATUS</span>
+<h2 class="text-lg font-bold text-white">Ampere Nexus EX</h2>
+</div>
+<span class="text-xs font-mono text-slate-400 bg-obsidian px-2.5 py-1 rounded-full border border-slate-800">
+          VIN: NEX-9921
+        </span>
+</div>
+<!-- Quick Action Buttons -->
+<div class="grid grid-cols-4 gap-2 pt-1 pb-3">
+<button class="p-2.5 bg-obsidian/90 hover:border-cyan-400/50 border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-1 transition-all" onclick="toggleVehicleLock(this)">
+<svg class="w-5 h-5 text-neonCyan" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<rect height="11" rx="2" ry="2" width="18" x="3" y="11"></rect>
+<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+</svg>
+<span class="text-[10px] font-medium text-slate-200 lock-label">Unlock</span>
+</button>
+<button class="p-2.5 bg-obsidian/90 hover:border-cyan-400/50 border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-1 transition-all" onclick="flashPillMessage('Boot opened remotely')">
+<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-medium text-slate-200">Open Boot</span>
+</button>
+<button class="p-2.5 bg-obsidian/90 hover:border-cyan-400/50 border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-1 transition-all" onclick="flashPillMessage('Audible siren activated')">
+<svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-medium text-slate-200">Siren Ping</span>
+</button>
+<button class="p-2.5 bg-obsidian/90 hover:border-cyan-400/50 border border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-1 transition-all" onclick="flashPillMessage('Navigating to parked vehicle on map...')">
+<svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-medium text-slate-200">Live GPS</span>
+</button>
+</div>
+</section>
+<!-- Battery Telemetry Deep Dive -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-semibold text-white">LFP Battery Matrix</h3>
+<span class="text-xs font-mono text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+          3.3 kWh • 51.2V
+        </span>
+</div>
+<div class="grid grid-cols-3 gap-2 text-center mb-3">
+<div class="bg-obsidian/70 p-2.5 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Pack Temp</p>
+<p class="text-sm font-mono font-bold text-white mt-0.5">29.4 °C</p>
+</div>
+<div class="bg-obsidian/70 p-2.5 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Cell Delta</p>
+<p class="text-sm font-mono font-bold text-emerald-400 mt-0.5">0.008 V</p>
+</div>
+<div class="bg-obsidian/70 p-2.5 rounded-2xl border border-slate-800">
+<p class="text-[10px] text-slate-400">Full Cycles</p>
+<p class="text-sm font-mono font-bold text-neonCyan mt-0.5">44 cycles</p>
+</div>
+</div>
+<div class="p-3 bg-slate-900/60 rounded-2xl border border-slate-800/80 flex items-center justify-between text-xs">
+<span class="text-slate-300">Fast Charging capability:</span>
+<span class="text-neonCyan font-bold">Enabled (0-80% in 1h 45m)</span>
+</div>
+</section>
+<!-- Subsystems Diagnostics Card -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-sm font-semibold text-white">Diagnostics &amp; Sensors</h3>
+<button class="text-xs font-semibold text-neonCyan hover:underline font-mono" onclick="flashPillMessage('Running full diagnostic scan... All systems OK.')">
+          Run Scan
+        </button>
+</div>
+<div class="space-y-2 text-xs">
+<div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+<span class="text-slate-300">Motor Controller (MCU)</span>
+<span class="text-emerald-400 font-medium">Optimal • 32°C</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+<span class="text-slate-300">Regen Braking Unit</span>
+<span class="text-emerald-400 font-medium">Calibrated</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+<span class="text-slate-300">7" TFT Cluster Touchscreen</span>
+<span class="text-emerald-400 font-medium">Firmware 4.2.1</span>
+</div>
+<div class="flex items-center justify-between py-1.5">
+<span class="text-slate-300">Next Scheduled Maintenance</span>
+<span class="text-neonCyan font-mono">In 3,295 km</span>
+</div>
+</div>
+</section>
+</div>
+<!-- ========================================== -->
+<!-- TAB 5: SETTINGS (Preferences & Modes)     -->
+<!-- ========================================== -->
+<div class="tab-panel hidden space-y-4" id="tab-settings">
+<!-- Rider & Vehicle ID Card -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<div class="flex items-center space-x-3">
+<div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600 to-neonCyan p-0.5 shadow-glow-cyan">
+<div class="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center font-bold text-neonCyan text-base font-mono">
+            NP
+          </div>
+</div>
+<div>
+<h2 class="text-base font-bold text-white leading-tight">Nexus Pilot</h2>
+<p class="text-xs text-slate-400 font-mono">ID: AMP-EX-8829 • Primary Rider</p>
+</div>
+</div>
+</section>
+<!-- Riding Mode Preference -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 font-mono">Default Riding Mode</h3>
+<div class="grid grid-cols-4 gap-1.5 p-1 bg-obsidian rounded-2xl border border-slate-800">
+<button class="mode-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white" onclick="setRideModePill(this)">Eco</button>
+<button class="mode-pill py-2 text-xs font-bold rounded-xl bg-neonCyan text-black shadow-glow-cyan" onclick="setRideModePill(this)">City</button>
+<button class="mode-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white" onclick="setRideModePill(this)">Power</button>
+<button class="mode-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white" onclick="setRideModePill(this)">Limpmode</button>
+</div>
+<div class="mt-4 pt-3 border-t border-slate-800 space-y-3">
+<!-- Hill Hold Toggle -->
+<div class="flex items-center justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-200 block">Hill Hold Assist</span>
+<span class="text-[10px] text-slate-400">Prevents rollback on slopes</span>
+</div>
+<button class="w-11 h-6 bg-neonCyan rounded-full transition-colors relative p-0.5" onclick="toggleSwitch(this)">
+<div class="w-5 h-5 bg-black rounded-full shadow transition-transform translate-x-5"></div>
+</button>
+</div>
+<!-- Reverse Crawl Mode -->
+<div class="flex items-center justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-200 block">Reverse Assist (Crawl)</span>
+<span class="text-[10px] text-slate-400">3 km/h reverse maneuvering</span>
+</div>
+<button class="w-11 h-6 bg-neonCyan rounded-full transition-colors relative p-0.5" onclick="toggleSwitch(this)">
+<div class="w-5 h-5 bg-black rounded-full shadow transition-transform translate-x-5"></div>
+</button>
+</div>
+<!-- Anti-Theft Geofence -->
+<div class="flex items-center justify-between">
+<div>
+<span class="text-xs font-semibold text-slate-200 block">Theft &amp; Tow Alert</span>
+<span class="text-[10px] text-slate-400">Push notification if moved while locked</span>
+</div>
+<button class="w-11 h-6 bg-neonCyan rounded-full transition-colors relative p-0.5" onclick="toggleSwitch(this)">
+<div class="w-5 h-5 bg-black rounded-full shadow transition-transform translate-x-5"></div>
+</button>
+</div>
+</div>
+</section>
+<!-- Connectivity & Sync Preferences -->
+<section class="glass-card rounded-3xl p-4 shadow-xl">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 font-mono">System &amp; Firmware</h3>
+<div class="space-y-2 text-xs">
+<div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+<span class="text-slate-300">OTA Firmware Version</span>
+<span class="font-mono text-neonCyan font-medium">v4.2.1-stable</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+<span class="text-slate-300">Map Provider</span>
+<span class="text-slate-200">Mapbox Fleet Navigation</span>
+</div>
+<div class="flex items-center justify-between py-1.5">
+<span class="text-slate-300">Units</span>
+<span class="font-mono text-slate-200">Metric (km, km/h, °C)</span>
+</div>
+</div>
+<button class="w-full mt-3 py-2 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs font-semibold text-slate-200 flex items-center justify-center space-x-1.5 active:scale-95 transition-transform" onclick="flashPillMessage('Checking Ampere cloud for updates... You have the latest software.')">
+<svg class="w-4 h-4 text-neonCyan" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Check for OTA Updates</span>
+</button>
+</section>
+</div>
+</main>
+<!-- Floating Toast Notification Banner -->
+<div class="fixed top-14 left-1/2 -translate-x-1/2 max-w-[360px] w-[90%] bg-obsidian/95 border border-cyan-400/40 text-cyan-200 px-3.5 py-2 rounded-2xl shadow-glow-cyan text-xs flex items-center justify-between pointer-events-none transition-all duration-300 opacity-0 -translate-y-4 z-50" id="toast-banner">
+<span class="truncate font-medium" id="toast-text">Notification</span>
+<span class="text-[10px] text-neonCyan font-mono ml-2 font-bold">NEXUS</span>
+</div>
+<!-- Modal: Quick Music & Audio Stream Switcher -->
+<div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center p-4 transition-opacity duration-300 hidden" id="music-modal">
+<div class="glass-card w-full max-w-[400px] rounded-3xl p-5 border border-cyan-500/40 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+<div class="flex items-center justify-between pb-2 border-b border-slate-800">
+<div class="flex items-center space-x-2">
+<span class="text-neonCyan">🎵</span>
+<h3 class="text-sm font-bold text-white font-mono">Cluster Music Player</h3>
+</div>
+<button class="p-1 rounded-full bg-slate-800 text-slate-400 hover:text-white" onclick="closeMusicSelectModal()">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+</button>
+</div>
+<p class="text-xs text-slate-300">Choose audio source to sync track telemetry with scooter TFT screen:</p>
+<div class="grid grid-cols-2 gap-2.5">
+<button class="p-3 bg-red-950/30 hover:bg-red-900/40 border border-red-500/40 rounded-2xl flex items-center space-x-2.5 transition-all text-left" onclick="selectQuickMusicApp('YouTube')">
+<div class="w-8 h-8 rounded-xl bg-red-600/30 flex items-center justify-center text-red-500"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg></div>
+<div><p class="text-xs font-bold text-white">YouTube</p><p class="text-[9px] text-red-300 font-mono">Active Default</p></div>
+</button>
+<button class="p-3 bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-500/40 rounded-2xl flex items-center space-x-2.5 transition-all text-left" onclick="selectQuickMusicApp('Spotify')">
+<div class="w-8 h-8 rounded-xl bg-emerald-600/30 flex items-center justify-center text-emerald-400"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"></path></svg></div>
+<div><p class="text-xs font-bold text-white">Spotify</p><p class="text-[9px] text-emerald-300 font-mono">Connect</p></div>
+</button>
+<button class="p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-700 rounded-2xl flex items-center space-x-2.5 transition-all text-left" onclick="selectQuickMusicApp('YT Music')">
+<div class="w-8 h-8 rounded-xl bg-red-700/20 flex items-center justify-center text-red-400"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon fill="#070a0e" points="10 8 16 12 10 16"></polygon></svg></div>
+<div><p class="text-xs font-bold text-white">YT Music</p><p class="text-[9px] text-slate-400 font-mono">Lossless</p></div>
+</button>
+<button class="p-3 bg-slate-900/60 hover:bg-slate-800 border border-slate-700 rounded-2xl flex items-center space-x-2.5 transition-all text-left" onclick="selectQuickMusicApp('Apple Music')">
+<div class="w-8 h-8 rounded-xl bg-pink-600/20 flex items-center justify-center text-pink-400"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.42c.6-1.1.99-2.61.78-4.14-1.31.05-2.91.87-3.84 1.96-.58.68-.99 2.21-.77 3.73 1.47.11 3.23-.45 3.83-1.55z"></path></svg></div>
+<div><p class="text-xs font-bold text-white">Apple Music</p><p class="text-[9px] text-slate-400 font-mono">Spatial</p></div>
+</button>
+</div>
+<button class="w-full py-2.5 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 rounded-xl text-xs font-bold text-neonCyan font-mono" onclick="closeMusicSelectModal()">
+Dismiss
+</button>
+</div>
+</div>
+<!-- BEGIN: Docked Bottom Automotive Navigation -->
+<nav class="fixed bottom-0 max-w-[425px] w-full bg-obsidian/95 backdrop-blur-xl border-t border-cyan-500/20 px-3 py-2 z-40" data-purpose="bottom-navigation-bar">
+<!-- Live Status Sub-pill -->
+<div class="flex items-center justify-between px-3 py-1 mb-1.5 bg-cardBg/80 rounded-xl border border-slate-800 text-[10px]">
+<div class="flex items-center space-x-1.5 text-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span id="dock-sync-status">Connected to Scooter • 100% Sync</span>
+</div>
+<span class="font-mono text-neonCyan font-medium">NEXUS PULSE</span>
+</div>
+<!-- Navigation Tab Icons -->
+<div class="flex items-center justify-around">
+<!-- Home Tab -->
+<button class="nav-tab-btn flex flex-col items-center group transition-colors text-neonCyan" data-purpose="nav-tab-home" data-tab="home" id="nav-btn-home" onclick="switchTab('home')">
+<div class="tab-icon-wrapper p-1 rounded-xl bg-neonCyan/15 border border-neonCyan/40 shadow-glow-cyan transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="tab-label text-[10px] font-bold mt-1 text-neonCyan">Home</span>
+</button>
+<!-- Trips Tab -->
+<button class="nav-tab-btn flex flex-col items-center group transition-colors text-slate-400 hover:text-slate-200" data-purpose="nav-tab-trips" data-tab="trips" id="nav-btn-trips" onclick="switchTab('trips')">
+<div class="tab-icon-wrapper p-1 rounded-xl border border-transparent transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.284a2.25 2.25 0 0 0-2.012 0L2.616 5.72A1.125 1.125 0 0 0 2 6.727v12.453c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497a2.25 2.25 0 0 0 2.012 0Z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="tab-label text-[10px] font-medium mt-1">Trips</span>
+</button>
+<!-- Insights Tab -->
+<button class="nav-tab-btn flex flex-col items-center group transition-colors text-slate-400 hover:text-slate-200" data-purpose="nav-tab-insights" data-tab="insights" id="nav-btn-insights" onclick="switchTab('insights')">
+<div class="tab-icon-wrapper p-1 rounded-xl border border-transparent transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="tab-label text-[10px] font-medium mt-1">Insights</span>
+</button>
+<!-- Scooter Tab -->
+<button class="nav-tab-btn flex flex-col items-center group transition-colors text-slate-400 hover:text-slate-200" data-purpose="nav-tab-scooter" data-tab="scooter" id="nav-btn-scooter" onclick="switchTab('scooter')">
+<div class="tab-icon-wrapper p-1 rounded-xl border border-transparent transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<circle cx="6" cy="18" r="3"></circle>
+<circle cx="18" cy="18" r="3"></circle>
+<path d="M6 15h11l2-7H9"></path>
+</svg>
+</div>
+<span class="tab-label text-[10px] font-medium mt-1">Scooter</span>
+</button>
+<!-- Settings Tab -->
+<button class="nav-tab-btn flex flex-col items-center group transition-colors text-slate-400 hover:text-slate-200" data-purpose="nav-tab-settings" data-tab="settings" id="nav-btn-settings" onclick="switchTab('settings')">
+<div class="tab-icon-wrapper p-1 rounded-xl border border-transparent transition-all">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="tab-label text-[10px] font-medium mt-1">Settings</span>
+</button>
+</div>
+</nav>
+<!-- END: Docked Bottom Automotive Navigation -->
+</div>
+<!-- BEGIN: Interactive Tab Switching Script -->
+<script>
+  let isLocked = false;
+  let toastTimer = null;
+
+  function switchTab(tabId) {
+    const tabs = ['home', 'trips', 'insights', 'scooter', 'settings'];
+    if (!tabs.includes(tabId)) return;
+
+    tabs.forEach(id => {
+      const panel = document.getElementById('tab-' + id);
+      const btn = document.getElementById('nav-btn-' + id);
+      if (!panel || !btn) return;
+
+      const iconBox = btn.querySelector('.tab-icon-wrapper');
+      const label = btn.querySelector('.tab-label');
+
+      if (id === tabId) {
+        panel.classList.remove('hidden');
+        btn.classList.remove('text-slate-400');
+        btn.classList.add('text-neonCyan');
+
+        if (iconBox) {
+          iconBox.classList.add('bg-neonCyan/15', 'border-neonCyan/40', 'shadow-glow-cyan');
+          iconBox.classList.remove('border-transparent');
+        }
+        if (label) {
+          label.classList.add('font-bold', 'text-neonCyan');
+          label.classList.remove('font-medium');
+        }
+      } else {
+        panel.classList.add('hidden');
+        btn.classList.add('text-slate-400');
+        btn.classList.remove('text-neonCyan');
+
+        if (iconBox) {
+          iconBox.classList.remove('bg-neonCyan/15', 'border-neonCyan/40', 'shadow-glow-cyan');
+          iconBox.classList.add('border-transparent');
+        }
+        if (label) {
+          label.classList.remove('font-bold', 'text-neonCyan');
+          label.classList.add('font-medium');
+        }
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleVehicleLock(btn) {
+    isLocked = !isLocked;
+    const labels = document.querySelectorAll('.lock-label');
+    labels.forEach(el => {
+      el.textContent = isLocked ? 'Lock' : 'Unlock';
+    });
+    flashPillMessage(isLocked ? 'Vehicle Secured & Locked 🔒' : 'Vehicle Unlocked & Ready to Ride ⚡');
+  }
+
+  function setClusterMode(btn, modeName) {
+    document.querySelectorAll('.cluster-pill').forEach(b => {
+      b.className = 'cluster-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white flex items-center justify-center space-x-1';
+    });
+    btn.className = 'cluster-pill py-2 text-xs font-bold rounded-xl bg-neonCyan text-black flex items-center justify-center space-x-1 shadow-glow-cyan';
+    const statusText = document.getElementById('cluster-status-text');
+    if (statusText) {
+      if (modeName === 'OFF') statusText.textContent = 'Cluster TFT navigation mode disabled';
+      else if (modeName === 'MIRROR') statusText.textContent = 'Full phone display mirrored to cluster';
+      else statusText.textContent = 'Streaming Maps prompts to TFT cluster';
+    }
+  }
+
+  function setRidingTimeFilter(btn, range) {
+    const parent = btn.parentElement;
+    parent.querySelectorAll('button').forEach(b => {
+      b.className = 'px-2.5 py-0.5 rounded-full text-slate-400 hover:text-white';
+    });
+    btn.className = 'px-2.5 py-0.5 rounded-full bg-neonCyan text-black font-bold shadow-glow-cyan';
+  }
+
+  function setRideModePill(btn) {
+    const parent = btn.parentElement;
+    parent.querySelectorAll('.mode-pill').forEach(b => {
+      b.className = 'mode-pill py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white';
+    });
+    btn.className = 'mode-pill py-2 text-xs font-bold rounded-xl bg-neonCyan text-black shadow-glow-cyan';
+    flashPillMessage('Riding mode switched to ' + btn.textContent.trim());
+  }
+
+  function toggleSwitch(btn) {
+    const knob = btn.querySelector('div');
+    const isActive = btn.classList.contains('bg-neonCyan');
+    if (isActive) {
+      btn.classList.remove('bg-neonCyan');
+      btn.classList.add('bg-slate-800');
+      knob.classList.remove('translate-x-5');
+      knob.classList.add('translate-x-0', 'bg-slate-400');
+    } else {
+      btn.classList.add('bg-neonCyan');
+      btn.classList.remove('bg-slate-800');
+      knob.classList.add('translate-x-5');
+      knob.classList.remove('translate-x-0', 'bg-slate-400');
+      knob.classList.add('bg-black');
+    }
+  }
+
+  function openMusicSelectModal() {
+    const modal = document.getElementById('music-modal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeMusicSelectModal() {
+    const modal = document.getElementById('music-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function selectQuickMusicApp(appName) {
+    closeMusicSelectModal();
+    flashPillMessage('Audio sink set to ' + appName + ' • TFT controls ready');
+  }
+
+  function flashPillMessage(msg) {
+    const toast = document.getElementById('toast-banner');
+    const toastText = document.getElementById('toast-text');
+    if (!toast || !toastText) return;
+
+    toastText.textContent = msg;
+    toast.classList.remove('opacity-0', '-translate-y-4');
+    toast.classList.add('opacity-100', 'translate-y-0');
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', '-translate-y-4');
+    }, 2400);
+  }
+</script>
+<!-- END: Interactive Tab Switching Script -->
+</body></html>

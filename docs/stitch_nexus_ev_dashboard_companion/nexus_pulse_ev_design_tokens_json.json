@@ -1,0 +1,323 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "Nexus Cyber-Automotive Design Tokens",
+  "version": "1.0.0",
+  "description": "Standardized W3C / Style Dictionary design tokens for Ampere Nexus EV / Nexus Pulse mobile app and cluster UI.",
+  "meta": {
+    "theme": "DARK",
+    "primaryHue": "#00e5ff",
+    "targetEcosystem": ["Flutter", "React Native", "Android Compose", "SwiftUI", "Tailwind CSS"]
+  },
+  "color": {
+    "surface": {
+      "base": {
+        "value": "#10131a",
+        "type": "color",
+        "description": "Default background canvas for dark automotive HUD"
+      },
+      "dim": {
+        "value": "#10131a",
+        "type": "color",
+        "description": "Darkest dim surface"
+      },
+      "bright": {
+        "value": "#363940",
+        "type": "color",
+        "description": "Highlighted surface contrast"
+      },
+      "containerLowest": {
+        "value": "#0b0e14",
+        "type": "color",
+        "description": "Deep inset containers and telemetry wells"
+      },
+      "containerLow": {
+        "value": "#191c22",
+        "type": "color",
+        "description": "Standard card background"
+      },
+      "container": {
+        "value": "#1d2026",
+        "type": "color",
+        "description": "Default card container background"
+      },
+      "containerHigh": {
+        "value": "#272a31",
+        "type": "color",
+        "description": "Elevated card surface"
+      },
+      "containerHighest": {
+        "value": "#32353c",
+        "type": "color",
+        "description": "Top-level elevated interactive cards / modals"
+      }
+    },
+    "brand": {
+      "primary": {
+        "value": "#00e5ff",
+        "type": "color",
+        "description": "Cyber Cyan - Primary telemetry, active tab, speed gauges, and accent glow"
+      },
+      "primaryVariant": {
+        "value": "#00b8cc",
+        "type": "color",
+        "description": "Darker cyan for pressed states and active borders"
+      },
+      "primaryGlow": {
+        "value": "rgba(0, 229, 255, 0.35)",
+        "type": "color",
+        "description": "Glow drop shadow for cyan active elements"
+      },
+      "primarySubtle": {
+        "value": "rgba(0, 229, 255, 0.12)",
+        "type": "color",
+        "description": "Subtle cyan pill background and badge tint"
+      }
+    },
+    "text": {
+      "primary": {
+        "value": "#ffffff",
+        "type": "color",
+        "description": "High-emphasis text and telemetry numbers"
+      },
+      "secondary": {
+        "value": "#94a3b8",
+        "type": "color",
+        "description": "Medium-emphasis labels and sub-metrics"
+      },
+      "tertiary": {
+        "value": "#64748b",
+        "type": "color",
+        "description": "Low-emphasis timestamps, inactive tabs, and units"
+      },
+      "inverse": {
+        "value": "#0b0e14",
+        "type": "color",
+        "description": "Text on bright cyan accents"
+      }
+    },
+    "border": {
+      "subtle": {
+        "value": "rgba(255, 255, 255, 0.08)",
+        "type": "color",
+        "description": "Hairline card and divider borders"
+      },
+      "medium": {
+        "value": "rgba(255, 255, 255, 0.14)",
+        "type": "color",
+        "description": "Interactive card borders"
+      },
+      "active": {
+        "value": "rgba(0, 229, 255, 0.50)",
+        "type": "color",
+        "description": "Active or selected container border"
+      }
+    },
+    "status": {
+      "success": {
+        "value": "#10b981",
+        "type": "color",
+        "description": "Emerald Green - Connected BLE status, optimal battery, Eco ride mode"
+      },
+      "successGlow": {
+        "value": "rgba(16, 185, 129, 0.30)",
+        "type": "color",
+        "description": "Live pulse for active vehicle connection"
+      },
+      "warning": {
+        "value": "#f59e0b",
+        "type": "color",
+        "description": "Amber - Low SoC warning (<25%), re-syncing, caution alert"
+      },
+      "warningGlow": {
+        "value": "rgba(245, 158, 11, 0.30)",
+        "type": "color",
+        "description": "Amber pulse alert"
+      },
+      "error": {
+        "value": "#ef4444",
+        "type": "color",
+        "description": "Crimson Red - Disconnected status, motor error, brake cutoff fail"
+      },
+      "info": {
+        "value": "#3b82f6",
+        "type": "color",
+        "description": "Electric Blue - General system telemetry and notifications"
+      }
+    },
+    "ridingMode": {
+      "eco": {
+        "value": "#10b981",
+        "type": "color",
+        "description": "Eco mode theme color"
+      },
+      "city": {
+        "value": "#00e5ff",
+        "type": "color",
+        "description": "City mode theme color"
+      },
+      "power": {
+        "value": "#ec4899",
+        "type": "color",
+        "description": "Power / Sport mode theme color"
+      },
+      "reverse": {
+        "value": "#8b5cf6",
+        "type": "color",
+        "description": "Reverse crawl mode theme color"
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "display": {
+        "value": "Space Grotesk, system-ui, sans-serif",
+        "type": "fontFamily",
+        "description": "Automotive HUD telemetry numbers, headings, speed readouts"
+      },
+      "body": {
+        "value": "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif",
+        "type": "fontFamily",
+        "description": "Body text, status labels, descriptions"
+      },
+      "mono": {
+        "value": "JetBrains Mono, SF Mono, Menlo, monospace",
+        "type": "fontFamily",
+        "description": "Firmware versions, MAC addresses, BLE UUIDs"
+      }
+    },
+    "fontSize": {
+      "displayLg": {
+        "value": "48px",
+        "type": "dimension",
+        "description": "Hero speedometer / main distance metric"
+      },
+      "displayMd": {
+        "value": "36px",
+        "type": "dimension",
+        "description": "Secondary hero telemetry"
+      },
+      "headingLg": {
+        "value": "24px",
+        "type": "dimension",
+        "description": "Section headers"
+      },
+      "headingMd": {
+        "value": "20px",
+        "type": "dimension",
+        "description": "Card titles"
+      },
+      "headingSm": {
+        "value": "16px",
+        "type": "dimension",
+        "description": "Sub-card titles and badge headers"
+      },
+      "bodyMd": {
+        "value": "14px",
+        "type": "dimension",
+        "description": "Default body text"
+      },
+      "bodySm": {
+        "value": "12px",
+        "type": "dimension",
+        "description": "Secondary captions and timestamp labels"
+      },
+      "caption": {
+        "value": "10px",
+        "type": "dimension",
+        "description": "Micro telemetry tags and system status badges"
+      }
+    },
+    "fontWeight": {
+      "regular": { "value": "400", "type": "fontWeight" },
+      "medium": { "value": "500", "type": "fontWeight" },
+      "semiBold": { "value": "600", "type": "fontWeight" },
+      "bold": { "value": "700", "type": "fontWeight" },
+      "extraBold": { "value": "800", "type": "fontWeight" }
+    },
+    "letterSpacing": {
+      "tight": { "value": "-0.02em", "type": "dimension" },
+      "normal": { "value": "0em", "type": "dimension" },
+      "wide": { "value": "0.05em", "type": "dimension" },
+      "wider": { "value": "0.1em", "type": "dimension" }
+    }
+  },
+  "borderRadius": {
+    "none": { "value": "0px", "type": "dimension" },
+    "sm": { "value": "4px", "type": "dimension" },
+    "md": { "value": "8px", "type": "dimension", "description": "Base theme radius" },
+    "lg": { "value": "12px", "type": "dimension" },
+    "xl": { "value": "16px", "type": "dimension", "description": "Standard card radius" },
+    "2xl": { "value": "20px", "type": "dimension", "description": "Hero container radius" },
+    "3xl": { "value": "24px", "type": "dimension", "description": "Modal sheet top corners" },
+    "full": { "value": "9999px", "type": "dimension", "description": "Pills, badges, toggle switches" }
+  },
+  "spacing": {
+    "2xs": { "value": "2px", "type": "dimension" },
+    "xs": { "value": "4px", "type": "dimension" },
+    "sm": { "value": "8px", "type": "dimension" },
+    "md": { "value": "12px", "type": "dimension" },
+    "lg": { "value": "16px", "type": "dimension" },
+    "xl": { "value": "20px", "type": "dimension" },
+    "2xl": { "value": "24px", "type": "dimension" },
+    "3xl": { "value": "32px", "type": "dimension" },
+    "4xl": { "value": "40px", "type": "dimension" }
+  },
+  "effects": {
+    "boxShadow": {
+      "card": {
+        "value": "0 8px 24px rgba(0, 0, 0, 0.45)",
+        "type": "shadow",
+        "description": "Standard card drop shadow"
+      },
+      "cyanGlowSm": {
+        "value": "0 0 12px rgba(0, 229, 255, 0.35)",
+        "type": "shadow",
+        "description": "Active tab and small interactive glow"
+      },
+      "cyanGlowLg": {
+        "value": "0 0 24px rgba(0, 229, 255, 0.50), 0 0 4px #00e5ff",
+        "type": "shadow",
+        "description": "Hero accent and primary button glow"
+      },
+      "emeraldGlow": {
+        "value": "0 0 12px rgba(16, 185, 129, 0.40)",
+        "type": "shadow",
+        "description": "Connection active badge glow"
+      }
+    },
+    "backdropBlur": {
+      "card": {
+        "value": "blur(16px)",
+        "type": "filter",
+        "description": "Glassmorphism card backdrop"
+      },
+      "dock": {
+        "value": "blur(24px)",
+        "type": "filter",
+        "description": "Fixed bottom navigation bar and header chrome backdrop"
+      }
+    }
+  },
+  "componentTokens": {
+    "bottomDock": {
+      "height": "76px",
+      "background": "rgba(11, 14, 20, 0.88)",
+      "borderTop": "1px solid rgba(255, 255, 255, 0.08)",
+      "activeIndicator": "#00e5ff",
+      "inactiveLabel": "#64748b"
+    },
+    "headerChrome": {
+      "height": "64px",
+      "background": "rgba(16, 19, 26, 0.92)",
+      "borderBottom": "1px solid rgba(255, 255, 255, 0.06)",
+      "badgeConnected": "#10b981",
+      "badgeConnecting": "#f59e0b",
+      "badgeDisconnected": "#ef4444"
+    },
+    "telemetryGauge": {
+      "trackColor": "rgba(255, 255, 255, 0.10)",
+      "indicatorColor": "#00e5ff",
+      "secondaryIndicatorColor": "#10b981"
+    }
+  }
+}

@@ -30,7 +30,15 @@ data class AiRideState(
     val coachTip: String = "Cruising at 35-45 km/h in ECO mode yields optimal energy efficiency.",
     val isCharging: Boolean = false,
     val timeTo80Min: Int = -1,
-    val timeTo100Min: Int = -1
+    val timeTo100Min: Int = -1,
+    val smoothAccelPct: Int = 94,
+    val bonusRangeKm: Int = 18,
+    val throttleLagSec: Double = 0.04,
+    val speedZoneEcoPct: Int = 68,
+    val speedZoneCruisePct: Int = 24,
+    val speedZonePowerPct: Int = 8,
+    val ecoRangeProjectionKm: Int = 108,
+    val sportRangeProjectionKm: Int = 84
 )
 
 object SmartAiEngine {

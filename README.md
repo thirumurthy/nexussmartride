@@ -1,152 +1,110 @@
 # Nexus SmartRide 🛵⚡
 
-**Nexus SmartRide** is an unofficial, open-source Android app that connects to your EV scooter via Bluetooth to provide reliable connectivity, real-time data insights, and enhanced ride information.
+> **⚠️ EDUCATIONAL & RESEARCH STUDY ONLY**  
+> This project was developed strictly for **educational purposes, reverse engineering (REA) analysis, and AI learning experiments**. It is an independent, non-commercial proof-of-concept exploring Bluetooth Low Energy (BLE) protocol reverse engineering, automotive cluster telemetry decoders, and AI-assisted companion application design.  
+> **It is NOT an official product, is NOT affiliated with any vehicle manufacturer, and is NOT intended for commercial distribution or upload to public app stores.**
+
+---
+
+## 🔬 Educational Purpose, REA & AI Learning
+
+This repository was created as an experimental learning laboratory centered around three core technical disciplines:
+
+### 1. Reverse Engineering (REA) & Protocol Analysis
+- **HCI Packet Snooping & Protocol Decoding**: Reverse-engineering Bluetooth Low Energy (BLE) GATT attributes, frame delimiters (`0xFF11`, `0xFF12`), byte-level bitmasks, and checksum validations used by modern digital two-wheeler TFT clusters.
+- **Automotive Telemetry Reconstruction**: Studying how speed, battery state of charge (SoC), voltage, amp-hour current, odometer deltas, and turn-by-turn navigation packets are framed, synchronized, and serialized over radio interfaces.
+- **Hardware Button Event Interception**: Analyzing how handlebar media and call button control bytes (`0x01`, `0x02`, etc.) are routed through the Bluetooth protocol stack to control smartphone media and telephony.
+
+### 2. AI-Assisted Architecture & Neural Copilot Exploration
+- **Agentic AI & REA Tooling**: Exploring modern AI-driven code generation, reverse-engineering decompilation analysis, and intelligent refactoring workflows.
+- **On-Device Machine Learning & Heuristic Clustering**: Implementing intelligent trip clustering algorithms to group fragmented micro-rides, detect charging boundary events, and filter GPS/odometer drift.
+- **Predictive Telemetry Coaching**: Exploring how multimodal and generative LLMs can consume raw vehicle time-series telemetry to provide real-time eco-riding advice, energy efficiency calculations, and range estimation.
+
+### 3. Open Telemetry & Interoperability Research
+- Investigating open standards for personal vehicle diagnostics, enabling vehicle owners to view and understand their own vehicle metrics without proprietary vendor lock-in.
 
 ---
 
 ## 🚀 Features
 
-* 📡 Stable Bluetooth Low Energy (BLE) connection
-* 🔋 Real-time battery and vehicle telemetry (SoC, speed, odometer, trip distance, DTE range, voltage, current)
-* 📊 Ride data and performance insights
-* ⏱️ Sync vehicle display time with your device
-* 📞 **Incoming & Missed Call Sync**: Real-time incoming caller ID and contact name on cluster; missed call count badge sync
-* 🎛️ **Handlebar Call Controls**: Answer and reject incoming phone calls directly using scooter handlebar buttons
-* 🎵 **Media & Song Info Sync**: Live playback metadata (track title, artist name, progress) streamed to vehicle display
-* ⏯️ **Handlebar Media Controls**: Play, pause, skip next, and previous track controlled via scooter handlebar buttons
-* 🧭 **Turn-by-Turn Navigation Cues**: Google Maps turn cues listener over BLE
-* 🖥️ **Screen Mirroring / Hotspot Streaming**: Wi-Fi hotspot screen streaming architecture for scooter display
-* 🔁 Automatic reconnection and session recovery
+* 📡 **Stable Bluetooth Low Energy (BLE) Connection**: Optimized reconnection watchdog and sequential descriptor management.
+* 🔋 **Real-Time Battery & Vehicle Telemetry**: State of Charge (SoC), speed, odometer delta, trip distance, DTE range, voltage, and current.
+* 📈 **Dual-Axis Ride Cadence Analytics**: Visualizing daily travel distance (km bars) overlaid with daily battery consumption (SoC % cubic curve).
+* ⏱️ **Cluster Clock Synchronization**: Accurate time sync with the vehicle's embedded dashboard.
+* 📞 **Incoming & Missed Call Sync**: Real-time incoming caller ID and contact name on cluster; missed call count badge sync.
+* 🎛️ **Handlebar Call Controls**: Answer and reject incoming phone calls directly using scooter handlebar buttons.
+* 🎵 **Media & Song Info Sync**: Live playback metadata (track title, artist name, progress) streamed to vehicle display.
+* ⏯️ **Handlebar Media Controls**: Play, pause, skip next, and previous track controlled via scooter handlebar buttons.
+* 🧭 **Turn-by-Turn Navigation Cues**: Google Maps turn cues listener over BLE.
+* 🖥️ **Screen Mirroring / Hotspot Streaming**: Wi-Fi hotspot screen streaming architecture for scooter display.
+* 🛠️ **Service & Maintenance Lifecycle Tracker**: Interactive maintenance checklist and inspection intervals based on vehicle service documentation.
 
 ---
 
-## 🧠 Why This App
-
-This project focuses on improving Bluetooth connection stability and providing a smoother, more consistent experience when interacting with vehicle data.
-
-Key improvements include:
-
-* Reliable reconnection handling
-* Optimized BLE communication intervals
-* Structured and controlled data exchange
-* Background-safe operation
-
----
-
-## 🔧 Connectivity Improvements
+## 🔧 Connectivity & Architecture
 
 ### High Priority Connection
-
 Uses optimized BLE connection parameters to maintain stable communication and reduce timeouts.
 
-### Smart Auto-Reconnect
-
-Automatically restores connection when the device is back in range.
-
-### Watchdog Recovery
-
-Detects stalled connections and safely reinitializes communication.
+### Smart Auto-Reconnect & Watchdog Recovery
+Automatically restores connection when the vehicle is in range and detects stalled sessions to safely reinitialize communication without manual app intervention.
 
 ### Sequential Descriptor Handling
-
-Prevents BLE congestion by managing descriptor writes in a controlled sequence.
+Prevents BLE congestion by managing descriptor writes in a controlled queue.
 
 ### Foreground Service
-
-Maintains persistent Bluetooth connection without interruption from system background limits.
+Maintains persistent Bluetooth connection without interruption from system background execution limits.
 
 ---
 
-## ⚙️ Setup
+## ⚙️ Building & Local Testing
 
 1. Open the project in **Android Studio**
-2. Sync Gradle and build the project
-3. Install the app on your device
-4. Grant Bluetooth permissions when prompted
-5. Tap **Scan & Connect** to discover your scooter
-6. Once connected, the device is saved for automatic reconnection
+2. Sync Gradle dependencies (`Java 17` / Android Gradle Plugin)
+3. Build the debug or release APK:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+4. Install on your personal test device:
+   ```bash
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
+   ```
+5. Grant Bluetooth, Nearby Devices, and Notification listener permissions when prompted.
 
 ---
 
-## 📡 Device Communication
+## 📊 Telemetry Data Model
 
-* Connects via Bluetooth Low Energy (BLE)
-* Reads telemetry data exposed by the vehicle
-* Maintains connection using optimized parameters
-
----
-
-## 📊 Data Overview
-
-| Field           | Description              |
-| --------------- | ------------------------ |
-| Speed           | Current vehicle speed    |
-| Battery Voltage | Battery voltage level    |
-| Current         | Charge/discharge current |
-| State of Charge | Battery percentage       |
-| Temperature     | System temperature       |
-| Status          | Device state information |
-| Error Code      | Diagnostic indicator     |
+| Field | Description | Protocol / Source |
+|---|---|---|
+| Speed | Current vehicle speed (km/h) | Live Frame (`0xFF11`) |
+| Battery Voltage | Battery voltage level (V) | Live Frame (`0xFF11`) |
+| Current | Charge / discharge current (A) | Battery Frame (`0xFF12`) |
+| State of Charge | Battery percentage (0–100%) | Battery Frame (`0xFF12`) |
+| Odometer | Lifetime distance traveled (km) | Cluster Odo Delta |
+| Temperature | Controller & battery temperature | Telemetry Sensor Frame |
+| Error Code | Cluster diagnostic indicators | Diagnostic Frame |
 
 ---
 
-## 🔐 Privacy
+## 🔐 Privacy & Local-First Philosophy
 
-* No user accounts required
-* No data is sent to external servers
-* All communication happens locally via Bluetooth
-
----
-
-## ⚠️ Disclaimer
-
-This is an unofficial, independent project and is not affiliated with, endorsed by, or associated with Ampere Vehicles or any of its subsidiaries.
-
-This application provides access to certain Bluetooth-based features and telemetry data available from the vehicle. Some features may interact with non-critical vehicle settings (such as time synchronization or display-related information). The application does not modify firmware, bypass security mechanisms, or interfere with core vehicle safety systems.
-
-This software is provided "as is", without any warranties or guarantees of any kind, express or implied, including but not limited to accuracy, reliability, or fitness for a particular purpose.
-
-By using this application, you acknowledge and agree that you are doing so entirely at your own risk. The developer shall not be held responsible or liable for any direct, indirect, incidental, or consequential damages, including but not limited to vehicle issues, incorrect data display, navigation errors, device malfunction, data loss, personal injury, or any other consequences arising from the use or misuse of this application.
-
-Users are solely responsible for ensuring safe usage of this application. Do not interact with the application while riding or in any situation that may cause distraction or unsafe conditions.
+* **No Mandatory Accounts**: The core Bluetooth connection, handlebar controls, call/media sync, and navigation mirror operate 100% locally on your phone.
+* **Isolated Cloud Telemetry**: Optional cloud sync features isolate vehicle records using cryptographically hashed device identifiers (`SHA-256(MAC + SALT)`), ensuring zero plain-text hardware identifiers are exposed.
+* **No Third-Party Analytics**: No third-party ad networks, trackers, or commercial monetization SDKs are embedded.
 
 ---
 
-## 🏷️ Stable Releases & Tags
+## ⚠️ Legal Notice & Disclaimers
 
-* **`v1.0.3`** (or **`1.0.3`**): **Verified Stable Release**
-  * Fully tested and verified working features:
-    * 📞 **Missed Call Counter**: Live counter syncs to the scooter dashboard.
-    * 📲 **Incoming Calls**: Contact name & caller ID alert on the cluster; handlebar button actions to answer (`0x01`) and reject (`0x02`) calls.
-    * 🎵 **Song & Media Info**: Track title, artist name, and playback progress streamed to cluster; handlebar media actions (play/pause/next/prev).
-    * ⚡ **Telemetry & Time Sync**: Accurate SoC %, speed, trip meters, range, and system clock updates.
-  * If any regressions or issues occur during future development, restore or checkout this tag:
-    ```bash
-    git checkout v1.0.3
-    # or
-    git checkout 1.0.3
-    ```
-
----
-
-## 🧩 Project Status
-
-This is an experimental and actively evolving project. Features may change or improve over time.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome. Feel free to open issues or submit pull requests.
+1. **Non-Affiliation**: This project is completely independent and has **no affiliation, association, authorization, endorsement by, or any official connection with Greaves Electric Mobility Ltd., Ampere Vehicles, or any of their subsidiaries or affiliates**.
+2. **Trademarks**: The names "Ampere", "Nexus", and related trademarks, trade names, emblems, and images are registered trademarks of their respective owners. Their mention in this repository is strictly for identification, nominative reference, and educational research purposes under fair use.
+3. **No Commercial Intent**: This software is strictly non-commercial. It is **not sold, monetized, or offered as a commercial service, and it is not intended for distribution via the Google Play Store or any commercial marketplace**.
+4. **Educational & Personal Use Only**: Intended solely for personal research by the individual vehicle owner on their own hardware. The software does not modify ECU firmware, disable safety mechanisms, or bypass vehicle security systems.
+5. **No Warranty**: This software is provided "AS IS", without warranty of any kind, express or implied. Operating an electric vehicle carries inherent risks. The developers accept no liability for vehicle performance, warranty status, battery health, or safety outcomes. Never interact with the application while operating a vehicle.
 
 ---
 
 ## 📄 License
 
-MIT License
-
----
-
-## ⭐ Support
-
-If you find this project useful, consider giving it a star ⭐
+MIT License. See [LICENSE](LICENSE) for details.

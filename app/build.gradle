@@ -12,8 +12,8 @@ android {
         applicationId "com.thirutricks.nexussmartride"
         minSdk 26
         targetSdk 34
-        versionCode project.hasProperty('versionCodeOverride') ? project.versionCodeOverride.toInteger() : 33554432
-        versionName project.hasProperty('versionNameOverride') ? project.versionNameOverride : "2.0.0"
+        versionCode project.hasProperty('versionCodeOverride') ? project.versionCodeOverride.toInteger() : 33557255
+        versionName project.hasProperty('versionNameOverride') ? project.versionNameOverride : "2.0.3"
     }
 
     signingConfigs {
